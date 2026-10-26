@@ -70,4 +70,5 @@ export interface DataSource {
   subscribe?(onSnapshot: (snapshot: Snapshot) => void): () => void;
   sendMessage(request: SendRequest): Promise<Reply>;
   completeTask(taskId: string): Promise<void>;
+  restoreTask(task: Task): Promise<void>;
 }

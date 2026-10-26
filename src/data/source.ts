@@ -19,6 +19,10 @@ export function createDemoSource(initial: Snapshot = demoData.snapshot, delayMs 
     async completeTask(taskId) {
       publishSnapshot({ ...snapshot, tasks: snapshot.tasks.filter(task => task.id !== taskId) });
     },
+    async restoreTask(task) {
+      if (snapshot.tasks.some(item => item.id === task.id)) return;
+      publishSnapshot({ ...snapshot, tasks: [task, ...snapshot.tasks] });
+    },
     async sendMessage({ text }) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
       const value = text.toLowerCase();

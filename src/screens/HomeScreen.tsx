@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
 import type { AgentIcon, Finding, ImageReference } from '../data/types';
+import type { Task } from '../data/types';
 import { colors, fonts, layout } from '../theme';
 import { keyboardComposerTop } from '../keyboardLayout';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
@@ -59,13 +60,16 @@ function Composer({ value, setValue, onSend, disabled }: {
 }
 
 export function HomeScreen() {
-  const { snapshot, loading, agents, completeTask, conversation, send } = useAppData();
+  const { snapshot, loading, agents, completeTask, restoreTask, conversation, send } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [draft, setDraft] = useState('');
   const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
   const [hostFrame, setHostFrame] = useState({ top: 0, height: 0 });
+  const [undoTaskItem, setUndoTaskItem] = useState<Task | null>(null);
+  const undoProgress = useRef(new Animated.Value(0)).current;
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const host = useRef<React.ComponentRef<typeof View>>(null);
   const measureHost = useCallback(() => {
     host.current?.measureInWindow((_, top, __, height) => {
@@ -119,6 +123,32 @@ export function HomeScreen() {
     void send(activeId, text);
   }, [activeId, send, state.status]);
 
+  const completeWithUndo = useCallback((task: Task) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoTaskItem(task);
+    undoProgress.setValue(0);
+    Animated.spring(undoProgress, { toValue: 1, speed: 28, bounciness: 4, useNativeDriver: Platform.OS !== 'web' }).start();
+    undoTimer.current = setTimeout(() => {
+      undoTimer.current = null;
+      Animated.timing(undoProgress, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(({ finished }) => {
+        if (finished) setUndoTaskItem(null);
+      });
+    }, 3000);
+    void completeTask(task.id);
+  }, [completeTask, undoProgress]);
+
+  const undoCompletion = useCallback(() => {
+    if (!undoTaskItem) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    setUndoTaskItem(null);
+    undoProgress.stopAnimation();
+    undoProgress.setValue(0);
+    void restoreTask(undoTaskItem);
+  }, [restoreTask, undoProgress, undoTaskItem]);
+
+  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
+
   const onVisible = useRef<NonNullable<FlatListProps<Finding>['onViewableItemsChanged']>>(({ viewableItems }) => {
     if (viewableItems[0]?.item) setSelectedId(viewableItems[0].item.id);
   }).current;
@@ -146,7 +176,7 @@ export function HomeScreen() {
           <LinearGradient pointerEvents="none" colors={['#000000', '#000000', '#00000000']} locations={[0, 0.86, 1]} style={StyleSheet.absoluteFill} />
           <AppText style={styles.taskLabel}>Have you completed this</AppText>
           <ScrollView style={{ maxHeight: taskScrollHeight }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.taskList}>
-            {snapshot.tasks.map(task => <TaskCard key={task.id} task={task} onComplete={completeTask} />)}
+            {snapshot.tasks.map(task => <TaskCard key={task.id} task={task} onComplete={() => completeWithUndo(task)} />)}
           </ScrollView>
         </View>}
       </View>
@@ -179,6 +209,20 @@ export function HomeScreen() {
     <View style={[styles.composerDock, dockTop === null ? { bottom: 0 } : { top: dockTop }]}>
       <Composer value={draft} setValue={setDraft} onSend={() => sendText(draft)} disabled={state.status === 'thinking'} />
     </View>
+    {undoTaskItem && <Animated.View pointerEvents="box-none" style={[styles.undoToastPosition, { top: Math.max(insets.top, 8) + 8 }, {
+      opacity: undoProgress,
+      transform: [
+        { translateY: undoProgress.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) },
+        { scale: undoProgress.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+      ],
+    }]}>
+      <View style={styles.undoToast}>
+        <AppText style={styles.undoLabel}>Task not completed?</AppText>
+        <Pressable accessibilityRole="button" accessibilityLabel="Undo task completion" onPress={undoCompletion} hitSlop={8}>
+          <AppText style={styles.undoAction}>Undo</AppText>
+        </Pressable>
+      </View>
+    </Animated.View>}
   </View>;
 }
 
@@ -211,4 +255,8 @@ const styles = StyleSheet.create({
   input: { fontFamily: fonts.interface, fontSize: 14, lineHeight: 18, color: colors.text, flex: 1, height: 52, paddingVertical: 0, paddingRight: 8, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
   send: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   composerDock: { position: 'absolute', left: layout.gutter, right: layout.gutter },
+  undoToastPosition: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 20 },
+  undoToast: { minHeight: 44, borderRadius: 999, backgroundColor: '#292929', paddingLeft: 17, paddingRight: 8, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#000000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 8 },
+  undoLabel: { fontSize: 14, lineHeight: 18, color: '#f3f3f3' },
+  undoAction: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 18, color: '#a9c4ff', paddingVertical: 10, paddingHorizontal: 10 },
 });

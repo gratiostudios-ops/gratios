@@ -16,7 +16,7 @@ Open the Expo QR code on a device with Expo Go for SDK 58, or use `npm run andro
 
 `src/data/demo.ts` is the one place for demo tasks, published findings, prompt chips, replies, feed entries, profile details, and agent Markdown. Change `demoData.snapshot` to preview another payload. The initial example contains three published findings from two agents, while four agents are configured in Profile.
 
-Home has no default agent. Configured agents do not appear on Home unless the current snapshot supplies findings for them. Findings are shown in their supplied order. An empty findings array displays a quiet empty canvas and keeps the input available. Checking a task draws the checkmark in 180ms, holds the completed state, then gently fades and lifts the row before removing it at one second. Repeated taps during completion are ignored. Removing the last task enlarges the illustration without moving the canvas title or input boundary.
+Home has no default agent. Configured agents do not appear on Home unless the current snapshot supplies findings for them. Findings are shown in their supplied order. An empty findings array displays a quiet empty canvas and keeps the input available. Checking a task draws the checkmark in 180ms, holds the completed state, then gently fades and lifts the row before removing it at one second. A gray undo pill appears at the top for three seconds; repeated taps during completion are ignored. Removing the last task enlarges the illustration without moving the canvas title or input boundary.
 
 Canvas navigation shows each icon once, even when several finding pages share it. Findings can supply a distinct `navigationIcon` and `navigationLabel`; Today at a glance uses the news icon. Swiping still reaches every finding. Selecting an icon opens its first supplied finding, and tapping the already selected icon keeps the current page. The example payload orders Flights first, Today at a glance second, and Mail third.
 
@@ -32,7 +32,7 @@ Restart Metro when changing a scenario. The default is `multiple`.
 
 ## Connect a backend later
 
-Implement `DataSource` in `src/data/types.ts` and pass it as `dataSource` to `AppDataProvider`. It loads a snapshot, optionally subscribes to pushed snapshots, completes tasks, and sends messages. The mock source also exposes `publishSnapshot` for integration exercises. Published snapshots replace tasks/findings; UI components do not read directly from the mock payload.
+Implement `DataSource` in `src/data/types.ts` and pass it as `dataSource` to `AppDataProvider`. It loads a snapshot, optionally subscribes to pushed snapshots, completes and restores tasks, and sends messages. The mock source also exposes `publishSnapshot` for integration exercises. Published snapshots replace tasks/findings; UI components do not read directly from the mock payload.
 
 Content blocks support headings, plain paragraphs, numbered lists, tables, and action buttons. Table columns and rows come from data; tables with more than two columns scroll horizontally. `previewRows` enables local Show More / Show Less. Images can reference a bundled asset key or a remote URI. Stable finding/task/block IDs preserve UI identity across updates.
 

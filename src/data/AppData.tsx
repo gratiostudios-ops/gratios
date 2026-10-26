@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { demoData } from './demo';
 import { createDemoSource } from './source';
-import type { DataSource, Reply, Snapshot } from './types';
+import type { DataSource, Reply, Snapshot, Task } from './types';
 
 type Conversation = { status: 'idle' | 'thinking' | 'reply' | 'error'; reply?: Reply; sent: boolean };
 const idle: Conversation = { status: 'idle', sent: false };
@@ -39,6 +39,17 @@ function useData(source: DataSource) {
     }
   }, [source]);
 
+  const restoreTask = useCallback(async (task: Task) => {
+    setSnapshot(previous => previous.tasks.some(item => item.id === task.id)
+      ? previous
+      : { ...previous, tasks: [task, ...previous.tasks] });
+    try { await source.restoreTask(task); }
+    catch {
+      setError('Could not undo that task. Please try again.');
+      try { setSnapshot(await source.load()); } catch { /* Keep the error visible if refresh also fails. */ }
+    }
+  }, [source]);
+
   const send = useCallback(async (findingId: string | null, text: string) => {
     const key = findingId ?? '__general__';
     if (!text.trim() || pending.current.has(key)) return;
@@ -53,7 +64,7 @@ function useData(source: DataSource) {
   }, [source]);
 
   return {
-    snapshot, loading, error, completeTask, send,
+    snapshot, loading, error, completeTask, restoreTask, send,
     conversation: (id: string | null) => conversations[id ?? '__general__'] ?? idle,
     agents: demoData.agents, profile: demoData.profile, feed: demoData.feed, documents,
     saveDocument: (id: string, text: string) => setDocuments(previous => ({ ...previous, [id]: text })),
