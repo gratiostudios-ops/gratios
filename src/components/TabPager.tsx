@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { Tab } from './BottomTabs';
+import type { Destination } from './Navigation';
 
-const tabs: Tab[] = ['home', 'suggestions', 'profile'];
+const tabs: Destination[] = ['home', 'suggestions', 'profile'];
 
 export function TabPager({ active, children }: {
-  active: Tab; children: React.ReactNode;
+  active: Destination; children: React.ReactNode;
 }) {
   return <View style={styles.viewport}>
     {React.Children.map(children, (child, index) => <View

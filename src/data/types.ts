@@ -41,7 +41,7 @@ export type Finding = {
 
 export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string };
 export type Snapshot = { tasks: Task[]; findings: Finding[] };
-export type Reply = { text: string; actions?: Action[] };
+export type Reply = { text: string; highlights?: string[]; actions?: Action[] };
 export type SendRequest = { text: string; findingId: string | null };
 
 export type FeedItem = {

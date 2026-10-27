@@ -10,8 +10,9 @@ export const colors = {
   faint: '#575757',
   divider: '#272727',
   tableDivider: '#393939',
-  blue: '#578bf8',
-  chip: '#3a62b4',
+  blue: '#4a78e8',
+  chip: '#4a78e8',
+  onBlue: '#071b2b',
   task: '#e54865',
   calendar: '#487ee5', // Same saturation/lightness as the Figma task red.
   highlight: '#32f579',

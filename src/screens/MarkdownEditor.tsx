@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   cancel: { color: colors.blue },
   title: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 20, flex: 1, textAlign: 'center' },
   save: { backgroundColor: colors.blue, borderRadius: 22, minHeight: 34, paddingHorizontal: 18 },
-  saveText: { fontFamily: fonts.semibold, color: '#ffffff' },
+  saveText: { fontFamily: fonts.semibold, color: colors.onBlue },
   filename: { color: colors.muted, paddingHorizontal: 26, paddingVertical: 14, fontSize: 12, borderBottomWidth: 1, borderBottomColor: colors.divider },
   editor: { flex: 1, fontFamily: Platform.OS === 'ios' ? 'Menlo' : fonts.mono, color: colors.body, fontSize: 14, lineHeight: 23, padding: 26 },
   hint: { paddingHorizontal: 26, paddingVertical: 16, color: colors.muted, fontSize: 12 },

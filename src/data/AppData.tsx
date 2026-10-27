@@ -57,7 +57,7 @@ function useData(source: DataSource) {
     setConversations(previous => ({ ...previous, [key]: { status: 'thinking', sent: true } }));
     try {
       const reply = await source.sendMessage({ findingId, text: text.trim() });
-      if (mounted.current) setConversations(previous => ({ ...previous, [key]: { status: 'reply', sent: true, reply } }));
+      if (mounted.current) setConversations(previous => ({ ...previous, [key]: { status: 'reply', sent: true, reply: { ...reply } } }));
     } catch {
       if (mounted.current) setConversations(previous => ({ ...previous, [key]: { status: 'error', sent: true, reply: { text: 'Something went wrong. Please try sending your message again.' } } }));
     } finally { pending.current.delete(key); }

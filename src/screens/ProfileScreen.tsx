@@ -6,10 +6,11 @@ import { useAppData } from '../data/AppData';
 import { imageSource } from '../assets';
 import { Illustration } from '../components/Illustration';
 import { AppText } from '../components/UI';
+import { FloatingNavigation, type MenuActions } from '../components/Navigation';
 import { colors, fonts } from '../theme';
 import { MarkdownEditor } from './MarkdownEditor';
 
-export function ProfileScreen() {
+export function ProfileScreen(menuActions: MenuActions) {
   const { profile, agents, documents } = useAppData();
   const insets = useSafeAreaInsets();
   const [allInterests, setAllInterests] = useState(false);
@@ -19,7 +20,7 @@ export function ProfileScreen() {
   const preferences = (documents.preferences ?? '').split('\n').filter(line => /^\s*[-*]\s+/.test(line)).map(line => line.replace(/^\s*[-*]\s+/, ''));
   const heroOffset = Math.max(0, insets.top - 44);
   return <View style={styles.screen}>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 88 + insets.bottom }]}>
       <View style={[styles.hero, { height: 301 + heroOffset }]}>
         <LinearGradient colors={['#bbd0fa', '#1148bb']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.heroGradient, { height: 344 + heroOffset }]} />
         <Image source={imageSource(profile.avatar)} style={[styles.avatar, { top: 89 + heroOffset }]} resizeMode="cover" accessibilityLabel={`${profile.name}'s avatar`} />
@@ -52,6 +53,7 @@ export function ProfileScreen() {
         </View>
       </View>
     </ScrollView>
+    <FloatingNavigation {...menuActions} />
     {editor && <MarkdownEditor key={editor.id} documentId={editor.id} title={editor.title} onClose={() => setEditor(null)} />}
   </View>;
 }
@@ -92,5 +94,5 @@ const styles = StyleSheet.create({
   agentName: { fontFamily: fonts.bold, color: '#ffffff', fontSize: 16, lineHeight: 19, textAlign: 'center', letterSpacing: 0.16 },
   agentDescription: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 14, textAlign: 'center', color: '#6d6d6d', letterSpacing: 0.12, height: 33, width: 112 },
   agentEdit: { marginTop: 5, height: 27, borderRadius: 30, width: 115, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  agentEditText: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17, letterSpacing: 0.14, color: '#ffffff' },
+  agentEditText: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17, letterSpacing: 0.14, color: colors.onBlue },
 });

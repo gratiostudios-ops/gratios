@@ -1,4 +1,4 @@
-import type { Agent, FeedGroup, FeedItem, Finding, Profile, Reply, Snapshot } from './types';
+import type { Agent, FeedGroup, FeedItem, Finding, Profile, Reply, Snapshot, Task } from './types';
 
 const mail: Finding = {
   id: 'mail-2026-10-07',
@@ -66,22 +66,30 @@ const mixedContent: Finding = {
       { id: 'draft', label: 'Draft a reply', message: 'Draft a reply to Jacob' },
     ] },
   ],
-  suggestions: [{ id: 'help', label: 'Help me reply', message: 'Draft a reply to Jacob' }],
+  suggestions: [
+    { id: 'help', label: 'Help me reply', message: 'Draft a reply to Jacob' },
+    { id: 'priorities', label: 'What needs attention?', message: 'Show more details about my mail' },
+  ],
 };
+
+export const demoTasks: Task[] = [
+  { id: 'team-check-in', kind: 'calendar', title: 'Team check-in', due: 'Today, 10:30 AM' },
+  { id: 'reply-jacob', kind: 'task', title: 'Reply to Jacob', due: 'Before 11:00 AM' },
+  { id: 'design-review', kind: 'calendar', title: 'Design review', due: 'Today, 2:00 PM' },
+  { id: 'gym-task', kind: 'task', title: 'Finish your workout', due: 'This evening' },
+  { id: 'travel-call', kind: 'calendar', title: 'Call with travel agent', due: 'Today, 5:30 PM' },
+  { id: 'review-flights', kind: 'task', title: 'Review flight options', due: 'Before tomorrow' },
+];
 
 export const demoSnapshots: Record<'empty' | 'single' | 'multiple' | 'calendar', Snapshot> = {
   empty: { tasks: [], findings: [] },
   single: { tasks: [], findings: [mail] },
   multiple: {
-    tasks: [{ id: 'gym-task', kind: 'task', title: 'Went to Gym' }],
+    tasks: demoTasks,
     findings: [flights, mixedContent, mail],
   },
   calendar: {
-    tasks: [
-      { id: 'gym-task', kind: 'task', title: 'Went to Gym', due: '21/09/2026, 5pm' },
-      { id: 'director', kind: 'calendar', title: 'Meeting with Director', due: '21/09/2026, 7pm' },
-      { id: 'reception', kind: 'calendar', title: 'Bridal Reception', due: '21/09/2026, 8.30pm' },
-    ],
+    tasks: demoTasks,
     findings: [mail],
   },
 };
@@ -170,13 +178,13 @@ export const demoData = {
   feed,
   typingDelayMs: 1400,
   replies: {
-    default: { text: 'I’ve noted that. This is a local demo response; your agents will provide the real answer when connected.', actions: [{ id: 'details', label: 'Show more details', message: 'Show more details about my mail' }] },
-    draft: { text: 'Hi Jacob, thanks for the invitation. I’m happy to join the design review. Could you confirm the time?', actions: [{ id: 'revise', label: 'Make it shorter', message: 'Make the draft shorter' }, { id: 'done', label: 'Looks good', message: 'The draft looks good' }] },
-    shorter: { text: 'Hi Jacob, I’m happy to join the design review. Please confirm the time.' },
-    reschedule: { text: 'I can move your gym task to this evening. Does 6pm work for you?', actions: [{ id: 'confirm', label: 'Yes, 6pm', message: 'Confirm 6pm' }, { id: 'later', label: 'Try 7pm', message: 'Confirm 7pm' }] },
-    confirm: { text: 'Your demo task is set for this evening. You’re all set.' },
-    details: { text: 'Jacob is waiting for an RSVP to the design review. Your transfer request was declined, and four promotional emails can wait.', actions: [{ id: 'draft', label: 'Draft a reply', message: 'Draft a reply to Jacob' }] },
-    flights: { text: 'Tell me your departure city, destination, and dates, and I’ll help compare the options.' },
-    done: { text: 'The draft is ready. In the connected app, you’ll be able to review it before sending.' },
+    default: { highlights: ['local demo response'], text: 'I’ve noted that. This is a local demo response; your agents will provide the real answer when connected.', actions: [{ id: 'details', label: 'Show more details', message: 'Show more details about my mail' }] },
+    draft: { highlights: ['Jacob', 'design review', 'confirm the time'], text: 'Hi Jacob, thanks for the invitation. I’m happy to join the design review. Could you confirm the time?', actions: [{ id: 'revise', label: 'Make it shorter', message: 'Make the draft shorter' }, { id: 'done', label: 'Looks good', message: 'The draft looks good' }] },
+    shorter: { highlights: ['Jacob', 'design review', 'confirm the time'], text: 'Hi Jacob, I’m happy to join the design review. Please confirm the time.' },
+    reschedule: { highlights: ['this evening', '6pm'], text: 'I can move your gym task to this evening. Does 6pm work for you?', actions: [{ id: 'confirm', label: 'Yes, 6pm', message: 'Confirm 6pm' }, { id: 'later', label: 'Try 7pm', message: 'Confirm 7pm' }] },
+    confirm: { highlights: ['this evening'], text: 'Your demo task is set for this evening. You’re all set.' },
+    details: { highlights: ['RSVP', 'design review', 'declined'], text: 'Jacob is waiting for an RSVP to the design review. Your transfer request was declined, and four promotional emails can wait.', actions: [{ id: 'draft', label: 'Draft a reply', message: 'Draft a reply to Jacob' }] },
+    flights: { highlights: ['departure city', 'destination', 'dates'], text: 'Tell me your departure city, destination, and dates, and I’ll help compare the options.' },
+    done: { highlights: ['draft is ready', 'before sending'], text: 'The draft is ready. In the connected app, you’ll be able to review it before sending.' },
   } satisfies Record<string, Reply>,
 };

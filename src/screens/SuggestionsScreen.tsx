@@ -7,9 +7,10 @@ import { useAppData } from '../data/AppData';
 import type { FeedItem } from '../data/types';
 import { imageSource } from '../assets';
 import { AppText } from '../components/UI';
+import { FloatingNavigation, type MenuActions } from '../components/Navigation';
 import { colors, fonts } from '../theme';
 
-export function SuggestionsScreen() {
+export function SuggestionsScreen(menuActions: MenuActions) {
   const { feed } = useAppData();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<FeedItem | null>(null);
@@ -20,8 +21,8 @@ export function SuggestionsScreen() {
     try { await Linking.openURL(url); }
     catch { setLinkError('Could not open this link. Please try again.'); }
   };
-  return <View style={styles.screen}>
-    <View style={[styles.heading, { paddingTop: Math.max(126, insets.top + 64) }]}>
+  return <View style={[styles.screen, { paddingBottom: insets.bottom + 80 }]}>
+    <View style={[styles.heading, { paddingTop: insets.top + 64 }]}>
       <AppText accessibilityRole="header" style={styles.headingText}>Suggestions</AppText>
     </View>
     <View style={styles.listArea}>
@@ -42,6 +43,7 @@ export function SuggestionsScreen() {
       <LinearGradient pointerEvents="none" colors={['#080808', '#080808e5', '#080808cc', '#08080895', '#08080800']} locations={[0, 0.201923, 0.427885, 0.605769, 1]} style={styles.topFade} />
       <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d95', '#0d0d0dcc', '#0d0d0de5', '#0d0d0d']} locations={[0, 0.394231, 0.572115, 0.798077, 1]} style={styles.bottomFade} />
     </View>
+    <FloatingNavigation {...menuActions} />
     <Modal visible={selected !== null} animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setSelected(null)}>
       <View style={[styles.detail, { paddingTop: Math.max(20, insets.top), paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
         {selected && <StatusBar hidden={false} style="light" />}
