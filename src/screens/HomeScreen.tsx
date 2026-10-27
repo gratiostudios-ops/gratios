@@ -300,7 +300,7 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
           renderItem={({ item }) => <CanvasPage finding={item} width={canvasSize.width} height={canvasSize.height} taskHeight={taskHeight} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={text => { void send(item.id, text); }} />}
         /> : <View style={styles.empty}>
           <AppText style={styles.emptyTitle}>{loading ? 'Gathering your updates…' : 'You’re all caught up'}</AppText>
-          {!loading && <><AppText style={styles.emptyBody}>{isDemo ? 'Your agents’ findings will appear here when there’s something to share.' : 'Open Profile from the menu to enable your Gmail assistant and connect your mailbox. Then ask for a summary below.'}</AppText>
+          {!loading && <><AppText style={styles.emptyBody}>{isDemo ? 'Your agents’ findings will appear here when there’s something to share.' : 'Open Profile from the menu to enable your Gmail assistant or the Kochi → Dubai price tracker. Then ask for an update below.'}</AppText>
             <Pressable accessibilityRole="button" onPress={() => { void refresh().catch(() => {}); }} style={{ padding: 16 }}><AppText style={{ color: colors.blue }}>Refresh updates</AppText></Pressable></>}
         </View>}
         <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} style={styles.canvasFade} />
