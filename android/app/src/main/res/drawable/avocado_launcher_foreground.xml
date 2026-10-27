@@ -1,0 +1,3 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:left="24dp" android:right="24dp" android:top="24dp" android:bottom="24dp"><bitmap android:src="@drawable/launcher_mark" android:gravity="fill" android:filter="true"/></item>
+</layer-list>

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
+import { useTaskCard } from '../data/useTaskCard';
 import type { Action, AgentIcon, Finding, ImageReference, Reply, Task } from '../data/types';
 import { bottomTabHeight, colors, fonts, layout } from '../theme';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
@@ -134,10 +135,15 @@ function Figure({ image, heroHeight, taskHeight, hasTasks }: { image: ImageRefer
   </View>;
 }
 
-function CanvasPage({ finding, width, height, taskHeight, hasTasks, onAction }: { finding: Finding; width: number; height: number; taskHeight: number; hasTasks: boolean; onAction: (message: string) => void }) {
+function CanvasPage({ finding, width, height, taskHeight, hasTasks, onAction, scrollPositions }: {
+  finding: Finding; width: number; height: number; taskHeight: number; hasTasks: boolean;
+  onAction: (message: string) => void; scrollPositions: Map<string, number>;
+}) {
   const insets = useSafeAreaInsets();
   const heroHeight = canvasHeroHeight(height, insets.top);
-  return <ScrollView style={{ width, height }} contentContainerStyle={styles.canvasContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" accessibilityLabel={finding.title}>
+  return <ScrollView style={{ width, height }} contentContainerStyle={styles.canvasContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" accessibilityLabel={finding.title}
+    contentOffset={{ x: 0, y: scrollPositions.get(finding.id) ?? 0 }} scrollEventThrottle={32}
+    onScroll={({ nativeEvent }) => scrollPositions.set(finding.id, nativeEvent.contentOffset.y)}>
     <Figure image={finding.image} heroHeight={heroHeight} taskHeight={taskHeight} hasTasks={hasTasks} />
     <AppText accessibilityRole="header" style={styles.canvasTitle}>{finding.title}</AppText>
     <View style={{ marginTop: finding.blocks[0]?.type === 'table' ? 24 : 32 }}>
@@ -168,8 +174,8 @@ function Composer({ value, setValue, onSend, disabled, keyboardActive }: {
   </View>;
 }
 
-export function HomeScreen(menuActions: MenuActions) {
-  const { snapshot, loading, agents, completeTask, restoreTask, conversation, send } = useAppData();
+export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActive: boolean }) {
+  const { snapshot, loading, agents, completeTask, restoreTask, conversation, send, refresh, isDemo } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -184,6 +190,10 @@ export function HomeScreen(menuActions: MenuActions) {
   const undoProgress = useRef(new Animated.Value(0)).current;
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pager = useRef<FlatList<Finding>>(null);
+  const scrollPositions = useRef(new Map<string, number>()).current;
+  const canvasGesture = useRef(false);
+  const homeActive = useRef(isActive);
+  homeActive.current = isActive;
   const finding = snapshot.findings.find(item => item.id === selectedId) ?? snapshot.findings[0] ?? null;
   const activeId = finding?.id ?? null;
   const seenNavigationIcons = new Set<string>();
@@ -196,8 +206,11 @@ export function HomeScreen(menuActions: MenuActions) {
     seenNavigationIcons.add(key);
     return [{ finding: item, index, icon, key, agent: agents.find(candidate => candidate.id === item.agentId) }];
   });
-  const state = conversation(activeId);
-  const hasTasks = snapshot.tasks.length > 0;
+  const findingConversation = conversation(activeId);
+  const generalConversation = conversation(null);
+  const state = findingConversation.sent ? findingConversation : generalConversation;
+  const visibleTask = useTaskCard(snapshot.tasks, loading, isActive);
+  const hasTasks = visibleTask !== null;
   const bottomPadding = Math.max(8, insets.bottom) + 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
   const taskHeight = hasTasks ? chromeHeight : 0;
@@ -206,9 +219,11 @@ export function HomeScreen(menuActions: MenuActions) {
   useEffect(() => {
     // The first supplied finding becomes visible only when the current finding is absent.
     if (selectedId !== activeId) setSelectedId(activeId);
+    if (!isActive) { canvasGesture.current = false; return; }
+    if (canvasGesture.current) return;
     const index = snapshot.findings.findIndex(item => item.id === activeId);
     if (index >= 0 && canvasSize.width) pager.current?.scrollToOffset({ offset: index * canvasSize.width, animated: false });
-  }, [snapshot.findings, activeId, selectedId, canvasSize.width]);
+  }, [snapshot.findings, activeId, selectedId, canvasSize.width, isActive]);
 
   useEffect(() => {
     const shown = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardOpen(true));
@@ -250,16 +265,14 @@ export function HomeScreen(menuActions: MenuActions) {
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
 
   const onVisible = useRef<NonNullable<FlatListProps<Finding>['onViewableItemsChanged']>>(({ viewableItems }) => {
-    if (viewableItems[0]?.item) setSelectedId(viewableItems[0].item.id);
+    if (homeActive.current && canvasGesture.current && viewableItems[0]?.item) setSelectedId(viewableItems[0].item.id);
   }).current;
 
   const keyboardVisible = keyboardOpen || (fullHeight > 0 && fullHeight - viewportHeight > 80);
 
-  const taskList = hasTasks ? <View style={styles.tasks}>
-    <AppText style={styles.taskLabel}>Have you completed this</AppText>
-    <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.taskList}>
-      {snapshot.tasks.map(task => <TaskCard key={task.id} task={task} onComplete={() => completeWithUndo(task)} />)}
-    </ScrollView>
+  const taskList = visibleTask ? <View style={styles.tasks}>
+    <AppText style={styles.taskLabel}>{visibleTask.kind === 'calendar' ? 'On your calendar' : 'Have you completed this'}</AppText>
+    <TaskCard key={visibleTask.id} task={visibleTask} onComplete={() => completeWithUndo(visibleTask)} />
   </View> : null;
 
   return <View style={styles.screen} onLayout={({ nativeEvent: { layout: viewport } }) => {
@@ -275,12 +288,20 @@ export function HomeScreen(menuActions: MenuActions) {
       <View style={styles.canvasViewport} onLayout={event => setCanvasSize(event.nativeEvent.layout)}>
         {canvasSize.width > 0 && snapshot.findings.length > 0 ? <FlatList ref={pager} horizontal pagingEnabled data={snapshot.findings} keyExtractor={item => item.id}
           showsHorizontalScrollIndicator={false} extraData={[taskHeight, canvasSize.height]} onViewableItemsChanged={onVisible}
+          onScrollBeginDrag={() => { canvasGesture.current = true; }}
+          onMomentumScrollEnd={({ nativeEvent }) => {
+            canvasGesture.current = false;
+            if (!isActive || !canvasSize.width) return;
+            const page = snapshot.findings[Math.round(nativeEvent.contentOffset.x / canvasSize.width)];
+            if (page) setSelectedId(page.id);
+          }}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }} keyboardShouldPersistTaps="handled"
           getItemLayout={(_, index) => ({ length: canvasSize.width, offset: index * canvasSize.width, index })}
-          renderItem={({ item }) => <CanvasPage finding={item} width={canvasSize.width} height={canvasSize.height} taskHeight={taskHeight} hasTasks={hasTasks} onAction={text => { void send(item.id, text); }} />}
+          renderItem={({ item }) => <CanvasPage finding={item} width={canvasSize.width} height={canvasSize.height} taskHeight={taskHeight} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={text => { void send(item.id, text); }} />}
         /> : <View style={styles.empty}>
           <AppText style={styles.emptyTitle}>{loading ? 'Gathering your updates…' : 'You’re all caught up'}</AppText>
-          {!loading && <AppText style={styles.emptyBody}>Your agents’ findings will appear here when there’s something to share.</AppText>}
+          {!loading && <><AppText style={styles.emptyBody}>{isDemo ? 'Your agents’ findings will appear here when there’s something to share.' : 'Open Profile from the menu to enable your Gmail assistant and connect your mailbox. Then ask for a summary below.'}</AppText>
+            <Pressable accessibilityRole="button" onPress={() => { void refresh().catch(() => {}); }} style={{ padding: 16 }}><AppText style={{ color: colors.blue }}>Refresh updates</AppText></Pressable></>}
         </View>}
         <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} style={styles.canvasFade} />
         {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
@@ -355,7 +376,6 @@ const styles = StyleSheet.create({
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
   tasks: { paddingTop: 8, paddingBottom: 8 },
   taskLabel: { fontSize: 12, lineHeight: 14, letterSpacing: 0.12, color: colors.muted, marginLeft: 2, marginBottom: 8 },
-  taskList: { gap: 8 },
   empty: { flex: 1, paddingHorizontal: 42, justifyContent: 'center', alignItems: 'center' },
   emptyTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29, textAlign: 'center' },
   emptyBody: { fontSize: 14, lineHeight: 21, textAlign: 'center', color: colors.muted, marginTop: 12 },

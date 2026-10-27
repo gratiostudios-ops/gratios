@@ -26,7 +26,7 @@ function SleepZ({ index, reduceMotion, flow, occasional = false }: {
   index: number; reduceMotion: boolean; flow: Animated.Value; occasional?: boolean;
 }) {
   const rareDrift = useRef(new Animated.Value(0)).current;
-  const drift = useMemo(() => occasional ? rareDrift : Animated.modulo(Animated.add(flow, index / 3), 1), [flow, index, occasional, rareDrift]);
+  const drift = useMemo(() => occasional ? rareDrift.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) : Animated.modulo(Animated.add(flow, index / 3), 1).interpolate({ inputRange: [0, 1], outputRange: [0, 1] }), [flow, index, occasional, rareDrift]);
   useEffect(() => {
     if (reduceMotion || !occasional) return;
     const animation = Animated.loop(Animated.sequence([

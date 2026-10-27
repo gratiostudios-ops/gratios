@@ -2,6 +2,14 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// Rebundle when the shared API address changes, even if source files are unchanged.
+tasks.configureEach {
+    if (name == 'createBundleReleaseJsAndAssets') {
+        inputs.property('avocadoGatewayUrl', providers.environmentVariable('EXPO_PUBLIC_GATEWAY_URL').orElse(''))
+        inputs.property('avocadoDemoMode', providers.environmentVariable('EXPO_PUBLIC_DEMO_MODE').orElse(''))
+    }
+}
+
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**

@@ -9,6 +9,7 @@ import { AppText } from '../components/UI';
 import { FloatingNavigation, type MenuActions } from '../components/Navigation';
 import { colors, fonts } from '../theme';
 import { MarkdownEditor } from './MarkdownEditor';
+import { AccountSettings } from './AccountSettings';
 
 export function ProfileScreen(menuActions: MenuActions) {
   const { profile, agents, documents } = useAppData();
@@ -30,6 +31,7 @@ export function ProfileScreen(menuActions: MenuActions) {
       </View>
 
       <View style={styles.body}>
+        <AccountSettings />
         <AppText style={styles.label}>About you</AppText>
         <View style={styles.dob}><AppText style={styles.dobLabel}>DOB</AppText><AppText style={styles.dobValue}>{profile.dob}</AppText></View>
         <AppText style={styles.interestsLabel}>Interests</AppText>

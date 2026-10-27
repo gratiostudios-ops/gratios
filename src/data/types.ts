@@ -63,6 +63,12 @@ export type Profile = {
   preferences: string[];
 };
 
+export type SavedMessage = { id: string; text: string; reply?: Reply; status: 'queued' | 'running' | 'completed' | 'failed'; error?: string };
+export type MobileData = {
+  snapshot: Snapshot; agents: Agent[]; profile: Profile; feed: FeedGroup[]; documents: Record<string, string>;
+  conversations: { id: string; findingId: string | null; messages: SavedMessage[] }[];
+};
+
 // A backend can implement this interface and push complete snapshots through subscribe.
 // Components never choose an agent from the registry when findings are absent.
 export interface DataSource {
@@ -71,4 +77,8 @@ export interface DataSource {
   sendMessage(request: SendRequest): Promise<Reply>;
   completeTask(taskId: string): Promise<void>;
   restoreTask(task: Task): Promise<void>;
+  loadMobile?(): Promise<MobileData>;
+  saveDocument?(id: string, text: string): Promise<void>;
+  setForeground?(foreground: boolean): void;
+  dispose?(): void;
 }
