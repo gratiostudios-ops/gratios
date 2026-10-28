@@ -44,6 +44,12 @@ export function AccountSettings() {
     <AppText accessibilityRole="header" style={styles.title}>Connected accounts</AppText>
     <AppText style={styles.body}>{gmail?.connected ? 'Gmail connected: ' + gmail.accountEmail : 'Gmail is not connected'}</AppText>
     <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => { void run(async () => {
+      const result=await gateway.request<{authorizationUrl:string}>('/integrations/calendar/connect',{method:'POST',body:'{}'});
+      if(new URL(result.authorizationUrl).origin!=='https://accounts.google.com')throw new Error('Invalid Google URL');
+      await Linking.openURL(result.authorizationUrl);
+    }); }}><AppText style={styles.buttonText}>Connect Google Calendar</AppText></Pressable>
+    <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void run(async () => {await gateway.request('/integrations/calendar',{method:'DELETE'});await refresh();setMessage('Calendar disconnected');}); }}><AppText style={styles.body}>Disconnect Calendar</AppText></Pressable>
+    <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => { void run(async () => {
       const result = await gateway.request<{ authorizationUrl: string }>('/integrations/gmail/connect', { method: 'POST', body: '{}' });
       if (new URL(result.authorizationUrl).origin !== 'https://accounts.google.com') throw new Error('Invalid Google authorization URL.');
       await Linking.openURL(result.authorizationUrl);

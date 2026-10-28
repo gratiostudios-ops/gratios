@@ -64,8 +64,8 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
     },
     async saveDocument(id, text) { assertActive(); await client.request('/gateway/documents/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({ text }) }); assertActive(); },
     async markCardSeen(id) { assertActive(); return client.request('/gateway/cards/' + encodeURIComponent(id) + '/seen', { method: 'POST', body: '{}' }); },
-    async completeTask() { throw new Error('Task completion is unavailable.'); },
-    async restoreTask() { throw new Error('Task restoration is unavailable.'); },
+    async completeTask(taskId) { assertActive(); const item=(await client.request<{items:{id:string;kind:string}[]}>('/gateway/agenda?timezone='+encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone))).items.find(item=>item.id===taskId); await client.request((item?.kind==='calendar'?'/gateway/calendar-reminders/':'/gateway/tasks/')+encodeURIComponent(taskId),{method:'PATCH',body:JSON.stringify({completed:true})}); },
+    async restoreTask(task) { assertActive(); await client.request((task.kind==='calendar'?'/gateway/calendar-reminders/':'/gateway/tasks/')+encodeURIComponent(task.id),{method:'PATCH',body:JSON.stringify({completed:false})}); },
     setForeground(value) { foreground = value; if (value) startStream(); else { stopStream?.(); stopStream = undefined; } },
     dispose() {
       for (const attempt of attempts.values()) attempt.controller.abort();

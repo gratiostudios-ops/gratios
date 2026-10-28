@@ -1,3 +1,4 @@
+import {TodayAgenda} from '../components/TodayAgenda';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, AppState, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
@@ -395,7 +396,7 @@ What’s on your mind?</AppText>
           </ScrollView>
         </View>}
       </View>
-      <View style={styles.findingNavigation}>
+      <View style={styles.findingNavigation}><TodayAgenda />
 
         {snapshot.findings.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.findingIcons}>
           {navigationAgents.map(({ finding: item, index, agent, icon, key }, navigationIndex) => {

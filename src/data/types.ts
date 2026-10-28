@@ -43,7 +43,7 @@ export type Finding = {
   expiresAt?: string | null;
 };
 
-export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string };
+export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string; dueAt?: string };
 export type Snapshot = { tasks: Task[]; findings: Finding[] };
 export type Reply = { version?: 1; text: string; highlights?: string[]; actions?: Action[] };
 export type SendRequest = { text: string; findingId: string | null; agentId?: string };
