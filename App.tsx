@@ -20,7 +20,6 @@ import { NavigationSheet, type Destination } from './src/components/Navigation';
 import { TabPager } from './src/components/TabPager';
 import { AppText } from './src/components/UI';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { SuggestionsScreen } from './src/screens/SuggestionsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { colors, fonts } from './src/theme';
 import { AuthProvider, useAuth } from './src/auth/Auth';
@@ -56,16 +55,15 @@ function Shell() {
     <View style={styles.content}>
     <TabPager active={tab}>
       <HomeScreen {...menuActions} isActive={tab === 'home'} />
-      <SuggestionsScreen {...menuActions} />
       <ProfileScreen {...menuActions} />
     </TabPager>
     </View>
-    <View pointerEvents="none" style={styles.statusBarFade}>
+    {tab !== 'profile' && <View pointerEvents="none" style={styles.statusBarFade}>
       <View style={{ height: insets.top, backgroundColor: '#000000' }} />
       <LinearGradient colors={['#000000', '#00000000']} style={{ height: 10 }} />
-    </View>
+    </View>}
     <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={() => setContact(true)} />
-    {error && <Pressable accessibilityRole="button" accessibilityLabel="Dismiss error" onPress={dismissError} style={styles.error}><AppText>{error} ×</AppText></Pressable>}
+    {error && <Pressable accessibilityRole="button" accessibilityLabel="Dismiss error" onPress={dismissError} style={[styles.error, { top: Math.max(insets.top, 8) + 8 }]}><AppText>{error} ×</AppText></Pressable>}
     <Modal visible={contact} transparent animationType="fade" onRequestClose={() => setContact(false)}>
       <View style={styles.scrim}><View style={styles.contactCard}>
         <AppText accessibilityRole="header" style={styles.contactTitle}>Contact us</AppText>
@@ -118,5 +116,5 @@ const styles = StyleSheet.create({
   contactBody: { color: colors.body, lineHeight: 21 },
   close: { minHeight: 40, borderRadius: 22, backgroundColor: colors.blue, justifyContent: 'center', alignItems: 'center' },
   closeText: { fontFamily: fonts.semibold, color: colors.onBlue },
-  error: { position: 'absolute', top: 44, left: 22, right: 22, padding: 16, borderRadius: 12, backgroundColor: colors.task },
+  error: { zIndex: 110, elevation: 110, position: 'absolute', top: 44, left: 22, right: 22, padding: 16, borderRadius: 12, backgroundColor: colors.task },
 });

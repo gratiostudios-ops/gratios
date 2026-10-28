@@ -7,10 +7,10 @@ import { colors, fonts, layout } from '../theme';
 import { Icon } from './Icons';
 import { AppText } from './UI';
 
-export type Destination = 'home' | 'suggestions' | 'profile';
+export type Destination = 'home' | 'profile';
 export type MenuActions = { onOpenMenu: () => void };
 const destinations: { id: Destination; label: string }[] = [
-  { id: 'home', label: 'Home' }, { id: 'suggestions', label: 'Suggestions' }, { id: 'profile', label: 'Profile' },
+  { id: 'home', label: 'Home' }, { id: 'profile', label: 'Profile' },
 ];
 
 export function NavigationButton({ onOpenMenu, keyboardActive = false }: MenuActions & { keyboardActive?: boolean }) {

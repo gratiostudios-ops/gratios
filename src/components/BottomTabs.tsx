@@ -8,7 +8,7 @@ import { AppText } from './UI';
 
 export type Tab = 'home' | 'suggestions' | 'profile';
 const tabs: { id: Tab; label: string }[] = [
-  { id: 'home', label: 'Home' }, { id: 'suggestions', label: 'Suggestions' }, { id: 'profile', label: 'Profile' },
+  { id: 'home', label: 'Home' },  { id: 'profile', label: 'Profile' },
 ];
 
 export function BottomTabs({ active, onChange, onContact }: { active: Tab; onChange: (tab: Tab) => void; onContact: () => void }) {

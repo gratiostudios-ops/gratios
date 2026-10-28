@@ -12,8 +12,9 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string, pa
     async load() { return (await this.loadMobile!()).snapshot; },
     async loadMobile() { assertActive(); const result = await client.request<MobileData>('/gateway/mobile'); assertActive(); return result; },
     async saveDocument(id, text) { assertActive(); await client.request('/gateway/documents/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({ text }) }); assertActive(); },
-    async completeTask() { throw new Error('Task completion is unavailable for Gmail summaries.'); },
-    async restoreTask() { throw new Error('Task restoration is unavailable for Gmail summaries.'); },
+    async markCardSeen(id) { assertActive(); return client.request('/gateway/cards/' + encodeURIComponent(id) + '/seen', { method: 'POST', body: '{}' }); },
+    async completeTask() { throw new Error('Task completion is unavailable.'); },
+    async restoreTask() { throw new Error('Task restoration is unavailable.'); },
     setForeground(value) { foreground = value; },
     dispose() { disposed = true; submissions.clear(); },
     async sendMessage(request: SendRequest): Promise<Reply> {
@@ -33,8 +34,7 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string, pa
       assertActive();
       submissions.delete(key);
       if (status.status === 'failed') throw new Error(status.error || 'The agent could not complete your request.');
-      if (!status.reply?.text) throw new Error('The agent returned an empty response.');
-      return status.reply;
+      return status.reply ?? { text: '' };
     },
   };
 }

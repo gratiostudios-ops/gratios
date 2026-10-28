@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,8 +12,11 @@ import { Icon } from '../components/Icons';
 import { Content } from '../components/Content';
 import { TaskCard } from '../components/TaskCard';
 import { NavigationButton, type MenuActions } from '../components/Navigation';
+import { cardImage } from '../assets';
+import { SafeImage } from '../components/SafeImage';
+import { RichText } from '../components/RichText';
 import { TalkingCharacter, mouthForWord, type MouthShape } from '../components/TalkingCharacter';
-import { imageSource } from '../assets';
+import { visibleText } from '../../../shared/response';
 
 const canvasHeroHeight = (height: number, topInset: number) => Math.max(Math.max(topInset, 27) + 100, height - 244);
 
@@ -29,31 +32,21 @@ function SuggestionButtons({ actions, onAction }: { actions: Action[]; onAction:
 }
 
 function ReplyText({ reply, visibleCharacters }: { reply: Reply; visibleCharacters: number }) {
-  const highlights = [...new Set((reply.highlights ?? []).filter(word => word.trim()))];
-  if (!highlights.length) return <AppText style={styles.replyText}>{Array.from(reply.text).slice(0, visibleCharacters).join('')}</AppText>;
-  const pattern = new RegExp('(' + highlights.sort((a, b) => b.length - a.length)
-    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
-  const highlighted = new Set(highlights.map(word => word.toLowerCase()));
-  let remaining = visibleCharacters;
-  return <AppText style={styles.replyText}>{reply.text.split(pattern).map((part, index) => {
-    const characters = Array.from(part);
-    const visible = characters.slice(0, Math.max(0, remaining)).join('');
-    remaining -= characters.length;
-    return highlighted.has(part.toLowerCase()) ? <AppText key={index} style={styles.replyHighlight}>{visible}</AppText> : visible;
-  })}</AppText>;
+  return <RichText style={styles.replyText} text={reply.text} highlights={reply.highlights} visibleCharacters={visibleCharacters} />;
 }
 
 function TypewriterReply({ reply, progress, onAction }: {
   reply: Reply; progress: WeakMap<Reply, number>; onAction: (message: string) => void;
 }) {
-  const length = Array.from(reply.text).length;
+  const plainText = visibleText(reply.text);
+  const length = Array.from(plainText).length;
   const words = useMemo(() => {
     let end = 0;
-    return (reply.text.match(/\s*\S+\s*/gu) ?? []).map(token => {
+    return (plainText.match(/\s*\S+\s*/gu) ?? []).map(token => {
       end += Array.from(token).length;
       return { text: token.trim(), end };
     });
-  }, [reply.text]);
+  }, [plainText]);
   const [visibleCharacters, setVisibleCharacters] = useState(() => progress.get(reply) ?? 0);
   const [mouth, setMouth] = useState<MouthShape>('smile');
   const [finishedSpeaking, setFinishedSpeaking] = useState(() => (progress.get(reply) ?? 0) >= length);
@@ -88,7 +81,6 @@ function TypewriterReply({ reply, progress, onAction }: {
       const shape = mouthForWord(word.text);
       setMouth(shape);
       const duration = Math.min(260, 110 + Array.from(word.text).length * 15) + (/[.!?]$/.test(word.text) ? 160 : /[,;:]$/.test(word.text) ? 80 : 0);
-      // One pose for short words, at most two poses for longer words.
       if (Array.from(word.text).length >= 6) mouthTimer = setTimeout(() => {
         if (!disposed) setMouth(shape === 'small' ? 'wide' : 'small');
       }, duration * 0.55);
@@ -101,7 +93,7 @@ function TypewriterReply({ reply, progress, onAction }: {
   return <View style={styles.replyRow}>
     <TalkingCharacter mouth={mouth} sleeping={finishedSpeaking} reduceMotion={reduceMotion}
       onWake={() => setWakePrompt(true)} onSleep={() => setWakePrompt(false)} />
-    <ScrollView style={styles.replyScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.reply}
+    <ScrollView style={styles.replyScroll} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" contentContainerStyle={styles.reply}
     accessibilityLiveRegion={complete ? 'polite' : 'none'}>
     <View style={styles.replyBubble}>
       {wakePrompt ? <AppText accessibilityLiveRegion="polite" style={styles.replyHighlight}>What do you need?</AppText> : <>
@@ -127,9 +119,8 @@ function Figure({ image, heroHeight, taskHeight, hasTasks }: { image: ImageRefer
   }, [dimensions, targetHeight]);
   return <View style={{ height: heroHeight, alignItems: 'center', justifyContent: 'flex-end', transform: [{ translateX: -5 }] }}>
     <Animated.View style={{ width: Animated.multiply(dimensions, baseWidth / baseHeight), height: dimensions, overflow: 'hidden', marginBottom: -7 }}>
-      <Animated.Image source={imageSource(image)} resizeMode={image.asset === 'mail' ? 'contain' : 'cover'} accessibilityLabel="Agent illustration" style={[
+      <SafeImage image={image} allowAvatar={false} resizeMode="contain" accessibilityLabel="Agent illustration" style={[
         StyleSheet.absoluteFill, { width: '100%', height: '100%' },
-        isFlight && { width: '146.99%', height: '154.08%', left: '-23.5%', top: '-24.64%' },
       ]} />
     </Animated.View>
   </View>;
@@ -175,7 +166,7 @@ function Composer({ value, setValue, onSend, disabled, keyboardActive }: {
 }
 
 export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActive: boolean }) {
-  const { snapshot, loading, agents, completeTask, restoreTask, conversation, send, refresh, isDemo } = useAppData();
+  const { snapshot, loading, agents, completeTask, restoreTask, conversation, send, markCardSeen } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -193,22 +184,20 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
   const scrollPositions = useRef(new Map<string, number>()).current;
   const canvasGesture = useRef(false);
   const homeActive = useRef(isActive);
-  homeActive.current = isActive;
+  homeActive.current = isActive && AppState.currentState === 'active';
   const finding = snapshot.findings.find(item => item.id === selectedId) ?? snapshot.findings[0] ?? null;
   const activeId = finding?.id ?? null;
   const seenNavigationIcons = new Set<string>();
   const iconFor = (item: Finding): AgentIcon | undefined => item.navigationIcon ?? agents.find(agent => agent.id === item.agentId)?.icon;
-  const activeIconKey = finding ? iconFor(finding) ?? finding.agentId : null;
+  const activeIconKey = finding?.agentId ?? null;
   const navigationAgents = snapshot.findings.flatMap((item, index) => {
     const icon = iconFor(item);
-    const key = icon ?? item.agentId;
+    const key = item.agentId;
     if (seenNavigationIcons.has(key)) return [];
     seenNavigationIcons.add(key);
     return [{ finding: item, index, icon, key, agent: agents.find(candidate => candidate.id === item.agentId) }];
   });
-  const findingConversation = conversation(activeId);
-  const generalConversation = conversation(null);
-  const state = findingConversation.sent ? findingConversation : generalConversation;
+  const state = conversation(null);
   const visibleTask = useTaskCard(snapshot.tasks, loading, isActive);
   const hasTasks = visibleTask !== null;
   const bottomPadding = Math.max(8, insets.bottom) + 8;
@@ -235,8 +224,8 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
     if (!text.trim() || state.status === 'thinking') return;
     setDraft('');
     Keyboard.dismiss();
-    void send(activeId, text);
-  }, [activeId, send, state.status]);
+    void send(null, text);
+  }, [send, state.status]);
 
   const completeWithUndo = useCallback((task: Task) => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -264,8 +253,22 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
 
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
 
+  const markSeenRef = useRef(markCardSeen);
+  markSeenRef.current = markCardSeen;
+  const [visibleCardId, setVisibleCardId] = useState<string | null>(null);
+  useEffect(() => {
+    const report = () => { if (isActive && AppState.currentState === 'active' && visibleCardId) void markCardSeen(visibleCardId).catch(() => {}); };
+    report();
+    const subscription = AppState.addEventListener('change', state => { homeActive.current = isActive && state === 'active'; if (state === 'active') report(); });
+    return () => subscription.remove();
+  }, [isActive, visibleCardId, markCardSeen]);
   const onVisible = useRef<NonNullable<FlatListProps<Finding>['onViewableItemsChanged']>>(({ viewableItems }) => {
-    if (homeActive.current && canvasGesture.current && viewableItems[0]?.item) setSelectedId(viewableItems[0].item.id);
+    const visible = viewableItems[0]?.item as Finding | undefined;
+    setVisibleCardId(visible?.id ?? null);
+    if (homeActive.current && visible) {
+      void markSeenRef.current(visible.id).catch(() => {});
+      if (canvasGesture.current) setSelectedId(visible.id);
+    }
   }).current;
 
   const keyboardVisible = keyboardOpen || (fullHeight > 0 && fullHeight - viewportHeight > 80);
@@ -297,11 +300,14 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
           }}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }} keyboardShouldPersistTaps="handled"
           getItemLayout={(_, index) => ({ length: canvasSize.width, offset: index * canvasSize.width, index })}
-          renderItem={({ item }) => <CanvasPage finding={item} width={canvasSize.width} height={canvasSize.height} taskHeight={taskHeight} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={text => { void send(item.id, text); }} />}
+          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} taskHeight={taskHeight} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
         /> : <View style={styles.empty}>
-          <AppText style={styles.emptyTitle}>{loading ? 'Gathering your updates…' : 'You’re all caught up'}</AppText>
-          {!loading && <><AppText style={styles.emptyBody}>{isDemo ? 'Your agents’ findings will appear here when there’s something to share.' : 'Open Profile from the menu to enable your Gmail assistant or the Kochi → Dubai price tracker. Then ask for an update below.'}</AppText>
-            <Pressable accessibilityRole="button" onPress={() => { void refresh().catch(() => {}); }} style={{ padding: 16 }}><AppText style={{ color: colors.blue }}>Refresh updates</AppText></Pressable></>}
+          <View style={styles.welcomeCard} accessibilityLabel="Welcome card">
+            <View style={styles.welcomeIcon}><Icon name="greeting" color="#b8cfff" /></View>
+            <AppText accessibilityRole="header" style={styles.emptyTitle}>Hey, glad you’re here.</AppText>
+            <AppText style={styles.emptyBody}>A little space for your day.
+What’s on your mind?</AppText>
+          </View>
         </View>}
         <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} style={styles.canvasFade} />
         {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
@@ -313,6 +319,7 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
         </View>}
       </View>
       <View style={styles.findingNavigation}>
+
         {snapshot.findings.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.findingIcons}>
           {navigationAgents.map(({ finding: item, index, agent, icon, key }, navigationIndex) => {
             const selected = activeIconKey === key;
@@ -376,6 +383,8 @@ const styles = StyleSheet.create({
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
   tasks: { paddingTop: 8, paddingBottom: 8 },
   taskLabel: { fontSize: 12, lineHeight: 14, letterSpacing: 0.12, color: colors.muted, marginLeft: 2, marginBottom: 8 },
+  welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center' },
+  welcomeIcon: { marginBottom: 24, padding: 20, borderRadius: 40, backgroundColor: '#24334f' },
   empty: { flex: 1, paddingHorizontal: 42, justifyContent: 'center', alignItems: 'center' },
   emptyTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29, textAlign: 'center' },
   emptyBody: { fontSize: 14, lineHeight: 21, textAlign: 'center', color: colors.muted, marginTop: 12 },
@@ -392,7 +401,7 @@ const styles = StyleSheet.create({
   replyRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   replyScroll: { flex: 1, alignSelf: 'stretch', minWidth: 0 },
   reply: { flexGrow: 1, justifyContent: 'center', paddingBottom: 6, gap: 8 },
-  replyBubble: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
+  replyBubble: { borderRadius: 16, paddingHorizontal: 4, paddingVertical: 4, gap: 8 },
   replyText: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22, color: colors.body },
   replyHighlight: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: '#ffffff' },
   replyActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

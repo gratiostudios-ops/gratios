@@ -27,7 +27,7 @@ export function MarkdownEditor({ documentId, title, onClose }: { documentId: str
         <AppText numberOfLines={1} accessibilityRole="header" style={styles.title}>{title}</AppText>
         <Pressable accessibilityRole="button" disabled={saving} onPress={() => { void save(); }} style={[styles.button, styles.save]}><AppText style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</AppText></Pressable>
       </View>
-      <AppText style={styles.filename}>{documentId}.md</AppText>
+      <AppText style={styles.filename}>{documentId.split(':').pop()?.toUpperCase()}.md</AppText>
       <TextInput accessibilityLabel={`${title} Markdown`} multiline autoCorrect={false} autoCapitalize="none" spellCheck={false} textAlignVertical="top" value={value} onChangeText={setValue}
         style={styles.editor} selectionColor={colors.blue} placeholder="# Your instructions" placeholderTextColor={colors.faint} />
       <AppText accessibilityLiveRegion="polite" style={styles.hint}>{error ?? 'Markdown · Save to update your instructions'}</AppText>

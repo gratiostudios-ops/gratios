@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { Destination } from './Navigation';
 
-const tabs: Destination[] = ['home', 'suggestions', 'profile'];
+const tabs: Destination[] = ['home', 'profile'];
 
 export function TabPager({ active, children }: {
   active: Destination; children: React.ReactNode;

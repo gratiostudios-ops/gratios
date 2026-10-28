@@ -37,8 +37,15 @@
             "image": "./assets/brand/logo.png"
           }
         }
-      ]
+      ],
+      "expo-notifications"
     ],
-    "icon": "./assets/brand/app-icon.png"
+    "icon": "./assets/brand/app-icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "0049d64d-14be-407d-8fb5-5a58694a6cb5"
+      }
+    },
+    "owner": "gratiostudios"
   }
 }

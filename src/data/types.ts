@@ -1,6 +1,6 @@
-export type AssetKey = 'mail' | 'brief' | 'flight' | 'gym' | 'video' | 'avatar' | 'phone' | 'car' | 'skoda' | 'watch';
+export type AssetKey = 'mail' | 'brief' | 'flight' | 'gym' | 'video' | 'avatar' | 'phone' | 'car' | 'skoda' | 'watch' | 'calendar';
 export type ImageReference = { asset: AssetKey; uri?: never } | { uri: string; asset?: never };
-export type AgentIcon = 'flight' | 'mail' | 'gym' | 'video' | 'news';
+export type AgentIcon = 'flight' | 'mail' | 'gym' | 'video' | 'news' | 'brief' | 'calendar' | 'date' | 'greeting';
 export type TableText = string | { text: string; tone?: 'highlight' | 'muted' }[];
 export type Action = { id: string; label: string; message: string };
 
@@ -26,6 +26,7 @@ export type Agent = {
   icon: AgentIcon;
   image: ImageReference;
   document: string;
+  enabled?: boolean;
 };
 
 export type Finding = {
@@ -37,12 +38,14 @@ export type Finding = {
   navigationLabel?: string;
   blocks: ContentBlock[];
   suggestions: Action[];
+  firstSeenAt?: string | null;
+  expiresAt?: string | null;
 };
 
 export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string };
 export type Snapshot = { tasks: Task[]; findings: Finding[] };
-export type Reply = { text: string; highlights?: string[]; actions?: Action[] };
-export type SendRequest = { text: string; findingId: string | null };
+export type Reply = { version?: 1; text: string; highlights?: string[]; actions?: Action[] };
+export type SendRequest = { text: string; findingId: string | null; agentId?: string };
 
 export type FeedItem = {
   id: string;
@@ -65,8 +68,9 @@ export type Profile = {
 
 export type SavedMessage = { id: string; text: string; reply?: Reply; status: 'queued' | 'running' | 'completed' | 'failed'; error?: string };
 export type MobileData = {
+  notificationFailures?: { id: string }[];
   snapshot: Snapshot; agents: Agent[]; profile: Profile; feed: FeedGroup[]; documents: Record<string, string>;
-  conversations: { id: string; findingId: string | null; messages: SavedMessage[] }[];
+  conversations: { id: string; findingId: string | null; agentId?: string; role?: string; history?: { id: string; role: 'user' | 'assistant'; text: string; reply?: Reply; createdAt: string }[]; messages: SavedMessage[] }[];
 };
 
 // A backend can implement this interface and push complete snapshots through subscribe.
@@ -79,6 +83,7 @@ export interface DataSource {
   restoreTask(task: Task): Promise<void>;
   loadMobile?(): Promise<MobileData>;
   saveDocument?(id: string, text: string): Promise<void>;
+  markCardSeen?(id: string): Promise<{ firstSeenAt: string; expiresAt: string }>;
   setForeground?(foreground: boolean): void;
   dispose?(): void;
 }

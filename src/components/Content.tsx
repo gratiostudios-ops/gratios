@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, fonts } from '../theme';
 import type { ContentBlock, TableText } from '../data/types';
 import { ActionChip, AppText } from './UI';
+import { RichText } from './RichText';
 
 function TableValue({ value }: { value: TableText }) {
-  if (typeof value === 'string') return <>{value}</>;
-  return <>{value.map((span, index) => <Text key={index} style={[
+  if (typeof value === 'string') return <RichText text={value} style={styles.tableText} />;
+  return <>{value.map((span, index) => <RichText key={index} text={span.text} style={[
+    styles.tableText,
     span.tone === 'muted' && { color: colors.muted },
     span.tone === 'highlight' && { fontFamily: fonts.bold, color: colors.highlight },
-  ]}>{span.text}</Text>)}</>;
+  ]} />)}</>;
 }
 
 function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
@@ -17,8 +19,8 @@ function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
   const visibleRows = expanded || !block.previewRows ? block.rows : block.rows.slice(0, block.previewRows);
   const canExpand = block.previewRows !== undefined && block.rows.length > block.previewRows;
   return <View style={styles.table}>
-    <AppText style={styles.tableTitle}>{block.title}</AppText>
-    {block.subtitle ? <AppText style={styles.subtitle}>{block.subtitle}</AppText> : null}
+    <RichText style={styles.tableTitle} text={block.title} />
+    {block.subtitle ? <RichText style={styles.subtitle} text={block.subtitle} /> : null}
     <ScrollView horizontal={block.columns.length > 2} scrollEnabled={block.columns.length > 2} showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
       <View style={{ flex: 1, minWidth: block.columns.length > 2 ? block.columns.length * 130 : undefined }}>
         {block.columns.some(column => column.label) && <View style={styles.tableRow}>
@@ -38,13 +40,13 @@ function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
 export function Content({ blocks, onAction }: { blocks: ContentBlock[]; onAction: (message: string) => void }) {
   return <View style={styles.blocks}>{blocks.map(block => {
     switch (block.type) {
-      case 'heading': return <AppText key={block.id} style={styles.heading}>{block.text}</AppText>;
-      case 'paragraph': return <AppText key={block.id} style={styles.paragraph}>{block.text}</AppText>;
+      case 'heading': return <RichText key={block.id} style={styles.heading} text={block.text} />;
+      case 'paragraph': return <RichText key={block.id} style={styles.paragraph} text={block.text} />;
       case 'table': return <Table key={block.id} block={block} />;
       case 'numbered-list': return <View key={block.id} style={styles.numberedList}>
         {block.items.map((item, index) => <View key={item.id} style={[styles.numberedRow, index === 0 && { minHeight: 48 }]}>
           <AppText style={styles.number}>{index + 1}</AppText>
-          <View style={[styles.numberedBody, index === 0 && { minHeight: 48, paddingTop: 0, paddingBottom: 13 }]}><AppText style={styles.listText}>{item.text}</AppText></View>
+          <View style={[styles.numberedBody, index === 0 && { minHeight: 48, paddingTop: 0, paddingBottom: 13 }]}><RichText style={styles.listText} text={item.text} /></View>
         </View>)}
       </View>;
       case 'actions': return <View key={block.id} style={styles.actions}>{block.actions.map(action => <ActionChip key={action.id} action={action} onPress={onAction} />)}</View>;
@@ -65,6 +67,7 @@ const styles = StyleSheet.create({
   tableTitle: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 19 },
   subtitle: { fontSize: 12, lineHeight: 14, color: colors.secondary, marginTop: 5, marginBottom: 12 },
   tableRow: { flexDirection: 'row', borderBottomColor: colors.tableDivider, borderBottomWidth: 1, paddingVertical: 8, gap: 12, minHeight: 33 },
+  tableText: { fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
   cell: { flex: 1, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
   columnLabel: { fontFamily: fonts.semibold, color: colors.secondary, fontSize: 12 },
   showMore: { paddingTop: 11, paddingBottom: 1, alignItems: 'center', minHeight: 26 },

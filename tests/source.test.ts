@@ -26,15 +26,23 @@ test('pushed snapshots can add and remove findings, preserving their supplied or
 });
 
 test('completing a task preserves calendar items and agent findings and publishes the result', async () => {
-  const source = createDemoSource(demoSnapshots.calendar, 0);
+  const initial: Snapshot = {
+    tasks: [
+      { id: 'todo', kind: 'task', title: 'Complete a task' },
+      { id: 'meeting', kind: 'calendar', title: 'Attend a meeting' },
+      { id: 'follow-up', kind: 'task', title: 'Follow up' },
+    ],
+    findings: demoSnapshots.single.findings,
+  };
+  const source = createDemoSource(initial, 0);
   let lastUpdate: Snapshot | undefined;
   source.subscribe!(snapshot => { lastUpdate = snapshot; });
-  await source.completeTask('gym-task');
-  assert.deepEqual(lastUpdate?.tasks.map(task => task.id), ['director', 'reception']);
-  assert.deepEqual(lastUpdate?.findings, demoSnapshots.calendar.findings);
-  assert.equal(demoSnapshots.calendar.tasks.length, 3);
-  await source.completeTask('director');
-  await source.completeTask('reception');
+  await source.completeTask('todo');
+  assert.deepEqual(lastUpdate?.tasks, initial.tasks.slice(1));
+  assert.deepEqual(lastUpdate?.findings, initial.findings);
+  assert.equal(initial.tasks.length, 3);
+  await source.completeTask('meeting');
+  await source.completeTask('follow-up');
   assert.deepEqual((await source.load()).tasks, []);
 });
 

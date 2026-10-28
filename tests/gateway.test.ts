@@ -105,3 +105,43 @@ test('mobile loads restore durable pending conversations and disposal stops poll
   await assert.rejects(sending, /Session ended/);
   assert.equal(calls, 2);
 });
+
+test('output-only completion does not fabricate or require a chat reply', async () => {
+  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async (_input, init) => {
+    const body = JSON.parse(init?.body as string);
+    assert.equal(body.agentId, 'dynamic-agent-id');
+    return json({ id: 'message', conversationId: 'conversation', status: 'completed', reply: null });
+  }) as typeof fetch);
+  await client.accept(session());
+  const source = createRemoteSource(client, () => 'submission');
+  assert.deepEqual(await source.sendMessage({ text: 'Create a card only', findingId: null, agentId: 'dynamic-agent-id' }), { text: '' });
+});
+
+test('card visibility reporting uses a dedicated authenticated endpoint', async () => {
+  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async (input, init) => {
+    assert.equal(String(input), 'http://localhost:4104/gateway/cards/card-id/seen');
+    assert.equal(init?.method, 'POST');
+    assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer access');
+    return json({ firstSeenAt: '2026-10-27T10:00:00Z', expiresAt: '2026-10-27T10:30:00Z' });
+  }) as typeof fetch);
+  await client.accept(session());
+  const source = createRemoteSource(client, () => 'submission');
+  assert.equal((await source.markCardSeen!('card-id')).expiresAt, '2026-10-27T10:30:00Z');
+});
+
+test('private agent documents use scoped uppercase document keys', async () => {
+  const writes: { url: string; body: unknown }[] = [];
+  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async (input, init) => {
+    assert.equal(init?.method, 'PUT');
+    writes.push({ url: String(input), body: JSON.parse(init?.body as string) });
+    return json({ saved: true });
+  }) as typeof fetch);
+  await client.accept(session());
+  const source = createRemoteSource(client, () => 'submission');
+  await source.saveDocument!('agent-one:PREFERENCE', 'Prefer concise answers.');
+  await source.saveDocument!('agent-two:AGENT', 'Research requested topics.');
+  assert.deepEqual(writes, [
+    { url: 'http://localhost:4104/gateway/documents/agent-one%3APREFERENCE', body: { text: 'Prefer concise answers.' } },
+    { url: 'http://localhost:4104/gateway/documents/agent-two%3AAGENT', body: { text: 'Research requested topics.' } },
+  ]);
+});

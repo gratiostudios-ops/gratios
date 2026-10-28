@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
 import type { FeedItem } from '../data/types';
-import { imageSource } from '../assets';
+import { SafeImage } from '../components/SafeImage';
 import { AppText } from '../components/UI';
 import { FloatingNavigation, type MenuActions } from '../components/Navigation';
 import { colors, fonts } from '../theme';
@@ -30,7 +30,7 @@ export function SuggestionsScreen(menuActions: MenuActions) {
         {feed.map(group => <View key={group.id} style={styles.group}>
           <AppText accessibilityRole="header" style={styles.date}>{group.dateLabel}</AppText>
           {group.items.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={item.title} onPress={() => { setLinkError(null); setSelected(item); }} style={({ pressed }) => [styles.item, pressed && { opacity: 0.65 }]}>
-            <View style={styles.thumbnail}><Image source={imageSource(item.image)} style={styles.fittedImage} resizeMode="cover" /></View>
+            <View style={styles.thumbnail}><SafeImage image={item.image} style={styles.fittedImage} resizeMode="cover" /></View>
             <View style={styles.itemText}>
               <AppText numberOfLines={1} style={styles.title}>{item.title}</AppText>
               <AppText numberOfLines={2} ellipsizeMode="tail" style={styles.description}>{item.description}</AppText>
@@ -38,7 +38,7 @@ export function SuggestionsScreen(menuActions: MenuActions) {
             <View style={styles.itemDivider} />
           </Pressable>)}
         </View>)}
-        {feed.length === 0 && <AppText style={styles.empty}>Your published Gmail summaries will appear here.</AppText>}
+        {feed.length === 0 && <AppText style={styles.empty}>Your agents’ published updates will appear here.</AppText>}
         {!isDemo && conversations.length > 0 && <View style={{ gap: 18, marginTop: 24 }}>
           <AppText accessibilityRole="header" style={styles.sectionTitle}>Conversation history</AppText>
           {conversations.flatMap(conversation => conversation.messages.map(message => <View key={message.id} style={{ gap: 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.divider }}>
@@ -58,7 +58,7 @@ export function SuggestionsScreen(menuActions: MenuActions) {
           <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><AppText style={styles.backText}>← Suggestions</AppText></Pressable>
         </View></View>
         {selected && <ScrollView key={selected.id} style={styles.detailScroll} contentContainerStyle={styles.detailContent}>
-          <View style={styles.detailImage}><Image source={imageSource(selected.image)} style={styles.fittedImage} resizeMode="contain" accessibilityLabel={selected.title} /></View>
+          <View style={styles.detailImage}><SafeImage image={selected.image} style={styles.fittedImage} resizeMode="contain" accessibilityLabel={selected.title} /></View>
           <AppText style={styles.detailMeta}>{selectedDate} · For you</AppText>
           <AppText accessibilityRole="header" style={styles.detailTitle}>{selected.title}</AppText>
           <AppText style={styles.detailDescription}>{selected.description}</AppText>
