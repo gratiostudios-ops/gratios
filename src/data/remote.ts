@@ -14,6 +14,7 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
   const cancelledSubmissions = new Set<string>();
   const cancelledMessages = new Set<string>();
   const attempts = new Map<string, { controller: AbortController; messageId?: string }>();
+  const timing = new Map<string, { started: number; received: Set<string> }>();
   const statuses = new Map<string, SavedMessage>();
   const waiters = new Map<string, { resolve(reply: Reply): void; reject(error: Error): void }>();
   const assertActive = () => { if (disposed) throw new Error('Session ended.'); };
@@ -29,6 +30,12 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
   };
   const settle = (status: SavedMessage) => {
     statuses.set(status.id, status);
+    const trace=timing.get(status.id);
+    for(const reply of status.replies??[])if(trace&&!trace.received.has(reply.id)){
+      trace.received.add(reply.id);
+      console.log(JSON.stringify({event:'app_reply_received',timestamp:new Date().toISOString(),messageId:status.id,replyId:reply.id,durationSeconds:(performance.now()-trace.started)/1000}));
+    }
+    if(trace&&status.status!=='queued'&&status.status!=='running')timing.delete(status.id);
     const waiter = waiters.get(status.id);
     if (!waiter || status.status === 'queued' || status.status === 'running') return;
     waiters.delete(status.id);
@@ -62,7 +69,7 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
     setForeground(value) { foreground = value; if (value) startStream(); else { stopStream?.(); stopStream = undefined; } },
     dispose() {
       for (const attempt of attempts.values()) attempt.controller.abort();
-      attempts.clear();
+      attempts.clear(); timing.clear();
       completedSubmissions.clear(); cancelledSubmissions.clear();
       disposed = true; stopStream?.(); stopStream = undefined; subscribers.clear(); submissions.clear(); statuses.clear();
       for (const waiter of waiters.values()) waiter.reject(new Error('Session ended.'));
@@ -98,6 +105,8 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
       assertActive();
       const key = JSON.stringify(request);
       const idempotencyKey = submissions.get(key) ?? uuid();
+      const requestStarted=performance.now();
+      console.log(JSON.stringify({event:'app_send',timestamp:new Date().toISOString(),submissionId:idempotencyKey}));
       const previousSubmission = completedSubmissions.get(key);
       if (previousSubmission) attempts.delete(previousSubmission);
       completedSubmissions.delete(key);
@@ -110,6 +119,8 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
       assertActive();
       if (cancelledSubmissions.has(idempotencyKey)) { cancelledMessages.add(status.id); throw new Error('Request cancelled'); }
       attempt.messageId = status.id;
+      timing.set(status.id,{started:requestStarted,received:new Set()});
+      console.log(JSON.stringify({event:'app_message_accepted',timestamp:new Date().toISOString(),submissionId:idempotencyKey,messageId:status.id,durationSeconds:(performance.now()-requestStarted)/1000}));
       onAccepted?.(status.id, idempotencyKey);
       // A reply can arrive before the POST acknowledgement. Replay the latest
       // snapshot after marking this request as belonging to the current session.

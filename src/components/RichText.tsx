@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, type TextProps } from 'react-native';
-import { parseInline } from '../../../shared/response';
+import { parseInline } from '../../../backend/shared/response';
 import { fonts } from '../theme';
 import { AppText } from './UI';
 

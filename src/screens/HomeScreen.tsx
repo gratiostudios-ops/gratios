@@ -17,7 +17,7 @@ import { cardImage } from '../assets';
 import { SafeImage } from '../components/SafeImage';
 import { RichText } from '../components/RichText';
 import { TalkingCharacter, mouthForWord, type MouthShape } from '../components/TalkingCharacter';
-import { visibleText } from '../../../shared/response';
+import { visibleText } from '../../../backend/shared/response';
 
 const canvasHeroHeight = (height: number, topInset: number) => Math.max(Math.max(topInset, 27) + 100, height - 244);
 
@@ -116,9 +116,13 @@ function TypewriterReply({ messages, progress, onAction, working, error, suggest
     let mouthTimer: ReturnType<typeof setTimeout> | undefined;
     let disposed = false;
     const stopTimers = () => { if (timer) clearTimeout(timer); if (mouthTimer) clearTimeout(mouthTimer); };
+    const displayStarted=performance.now();
+    let firstTextLogged=false;
+    let completionLogged=cursor>=length;
     const revealAll = () => {
       if (disposed) return;
       stopTimers();
+      if(!completionLogged){completionLogged=true;console.log(JSON.stringify({event:'app_text_complete',timestamp:new Date().toISOString(),replyId:messageId,durationSeconds:(performance.now()-displayStarted)/1000}));}
       cursor = length;
       progress.set(messageId, cursor);
       setVisibleCharacters(cursor);
@@ -133,6 +137,7 @@ function TypewriterReply({ messages, progress, onAction, working, error, suggest
     const revealWord = () => {
       if (disposed) return;
       if (wordIndex < 0 || wordIndex >= words.length) { revealAll(); return; }
+      if(!firstTextLogged){firstTextLogged=true;console.log(JSON.stringify({event:'app_first_text',timestamp:new Date().toISOString(),replyId:messageId,durationSeconds:(performance.now()-displayStarted)/1000}));}
       const word = words[wordIndex++];
       cursor = word.end;
       progress.set(messageId, cursor);
