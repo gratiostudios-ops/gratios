@@ -38,7 +38,8 @@
           }
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "./plugins/with-notification-brand"
     ],
     "icon": "./assets/brand/app-icon.png",
     "extra": {
