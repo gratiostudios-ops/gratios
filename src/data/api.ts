@@ -77,6 +77,61 @@ export class GatewayClient {
     })().finally(() => { this.refreshing = null; });
     return this.refreshing;
   }
+  /** Incremental XHR supports authenticated SSE on native and web. */
+  stream<T>(path: string, onData: (value: T) => void, onError: (error: Error) => void): () => void {
+    let stopped = false;
+    let xhr: XMLHttpRequest | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
+    const generation = this.generation;
+    const connect = async () => {
+      if (stopped || generation !== this.generation) return;
+      try {
+        if (this.rejected) throw new ApiError('Sign in again to receive chat updates.', 401);
+        if (this.expiresAt < Date.now() + 30000) await this.refresh();
+        if (stopped || generation !== this.generation) return;
+        const request = new XMLHttpRequest();
+        xhr = request;
+        request.open('GET', this.baseUrl.replace(/\/$/, '') + path);
+        request.setRequestHeader('Authorization', 'Bearer ' + this.session?.access_token);
+        request.setRequestHeader('Accept', 'text/event-stream');
+        if (/\.(ngrok-free\.(app|dev)|ngrok\.(app|dev|io))$/i.test(new URL(this.baseUrl).hostname)) request.setRequestHeader('ngrok-skip-browser-warning', '1');
+        let offset = 0, buffer = '', ended = false;
+        const reconnect = () => {
+          if (ended || stopped || generation !== this.generation) return;
+          ended = true;
+          timer = setTimeout(() => { void connect(); }, Math.min(500 * 2 ** failures++, 10000));
+        };
+        const consume = () => {
+          if (stopped || generation !== this.generation || request.status !== 200) return;
+          buffer += request.responseText.slice(offset);
+          offset = request.responseText.length;
+          let boundary: number;
+          while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+            const frame = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            const data = frame.split('\n').filter(line => line.startsWith('data: ')).map(line => line.slice(6)).join('\n');
+            if (data) { const value = JSON.parse(data) as T; failures = 0; onData(value); }
+          }
+        };
+        request.onprogress = () => { try { consume(); } catch { request.abort(); reconnect(); } };
+        request.onload = () => {
+          try { consume(); } catch { /* Recover with a fresh snapshot. */ }
+          if (request.status === 401) this.expiresAt = 0;
+          reconnect();
+        };
+        request.onerror = reconnect;
+        request.ontimeout = reconnect;
+        request.send();
+      } catch (error) {
+        if (stopped) return;
+        if (error instanceof ApiError && error.status === 401) { onError(error); return; }
+        timer = setTimeout(() => { void connect(); }, Math.min(500 * 2 ** failures++, 10000));
+      }
+    };
+    void connect();
+    return () => { stopped = true; clearTimeout(timer); xhr?.abort(); };
+  }
   async request<T>(path: string, init: RequestInit = {}, authenticated = true, retry = true): Promise<T> {
     const generation = this.generation;
     if (authenticated && this.rejected) throw new ApiError('Sign in again to update your cached data.', 401);
@@ -86,11 +141,13 @@ export class GatewayClient {
     const abort = () => controller.abort();
     init.signal?.addEventListener('abort', abort, { once: true });
     if (init.signal?.aborted) controller.abort();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), 45000);
     try {
       const response = await this.transport(this.baseUrl.replace(/\/$/, '') + path, {
         ...init, signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', ...(authenticated ? { Authorization: 'Bearer ' + (this.session?.access_token ?? '') } : {}), ...init.headers },
+        headers: { 'Content-Type': 'application/json', 'X-Avocado-Request-Timeout-Ms': '45000',
+          ...(/\.(ngrok-free\.(app|dev)|ngrok\.(app|dev|io))$/i.test(new URL(this.baseUrl).hostname) ? { 'ngrok-skip-browser-warning': '1' } : {}),
+          ...(authenticated ? { Authorization: 'Bearer ' + (this.session?.access_token ?? '') } : {}), ...init.headers },
       });
       if (authenticated && generation !== this.generation) throw new ApiError('Session ended.', 401);
       if (response.status === 401 && authenticated && retry) { await this.refresh(); return this.request<T>(path, init, authenticated, false); }
@@ -104,7 +161,11 @@ export class GatewayClient {
       return value as T;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new Error(controller.signal.aborted ? 'The backend request timed out. Please try again.' : 'Cannot reach the backend. Check your connection and that the laptop and tunnel are running.');
+      const operation = path === '/gateway/messages' ? 'sending your message'
+        : path.startsWith('/gateway/messages/') ? 'checking your chat reply'
+        : path === '/auth/refresh' ? 'refreshing your session'
+        : path === '/gateway/mobile' ? 'loading your home screen' : 'contacting the backend';
+      throw new Error(controller.signal.aborted ? `The backend request timed out while ${operation}. Please try again.` : 'Cannot reach the backend. Check your connection and that the backend is running.');
     } finally { clearTimeout(timer); init.signal?.removeEventListener('abort', abort); }
   }
 }

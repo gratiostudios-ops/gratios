@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, type TextProps, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, type TextProps, type StyleProp, type ViewStyle, View } from 'react-native';
 import { colors, fonts } from '../theme';
 import type { Action } from '../data/types';
 
@@ -29,8 +29,8 @@ function Dot({ index }: { index: number }) {
   return <Animated.View style={[styles.dot, { opacity: motion.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }), transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />;
 }
 
-export function TypingIndicator() {
-  return <View accessible accessibilityLabel="Agent is thinking" accessibilityRole="progressbar" style={styles.dots}>
+export function TypingIndicator({ style }: { style?: StyleProp<ViewStyle> } = {}) {
+  return <View accessible accessibilityLabel="Agent is thinking" accessibilityRole="progressbar" style={[styles.dots, style]}>
     {[0, 1, 2].map(index => <Dot key={index} index={index} />)}
   </View>;
 }

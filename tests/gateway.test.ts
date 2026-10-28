@@ -12,6 +12,22 @@ function memoryStorage(initial: string | null = null) {
 }
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 
+test('slow chat polling gets 45 seconds and identifies the operation on timeout', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let signal: AbortSignal | undefined;
+  const client = new GatewayClient('https://example.com', memoryStorage(), (async (_input, init) => {
+    assert.equal((init!.headers as Record<string, string>)['X-Avocado-Request-Timeout-Ms'], '45000');
+    signal = init!.signal!;
+    return new Promise<Response>((_resolve, reject) => signal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+  }) as typeof fetch);
+  const result = client.request('/gateway/messages/message-id', {}, false);
+  const rejected = assert.rejects(result, /timed out while checking your chat reply/);
+  t.mock.timers.tick(15000);
+  assert.equal(signal!.aborted, false, 'a request can outlast the former 15-second limit');
+  t.mock.timers.tick(30000);
+  await rejected;
+});
+
 test('concurrent authenticated requests share one token refresh and persist rotated refresh credentials', async () => {
   const storage = memoryStorage();
   const response = deferred<Response>();
@@ -54,22 +70,37 @@ test('an old authenticated response is rejected after account switch', async () 
   await assert.rejects(request, (error: unknown) => error instanceof ApiError && error.status === 401);
 });
 
-test('remote messages poll through delegated execution instead of treating dispatch as a reply', async () => {
+test('chat pushes every reply before completion without status polling, including reconnect snapshots', async t => {
   const urls: string[] = [];
-  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async (input, init) => {
-    const url = String(input); urls.push(url);
-    if (url.endsWith('/gateway/messages')) {
-      const body = JSON.parse(init?.body as string);
-      assert.equal(body.idempotencyKey, 'generated-id');
-      assert.equal(body.findingId, null);
-      return json({ id: 'message', conversationId: 'thread', status: 'queued' }, 202);
-    }
-    return json(urls.length === 2 ? { id: 'message', conversationId: 'thread', status: 'running' } : { id: 'message', conversationId: 'thread', status: 'completed', reply: { text: 'Real summary' } });
+  const posted = deferred<void>();
+  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async input => {
+    urls.push(String(input)); posted.resolve();
+    return json({ id: 'message', conversationId: 'thread', status: 'queued' }, 202);
   }) as typeof fetch);
   await client.accept(session());
-  const source = createRemoteSource(client, () => 'generated-id', async () => {});
-  assert.deepEqual(await source.sendMessage({ text: 'Summarize inbox', findingId: null }), { text: 'Real summary' });
-  assert.equal(urls.length, 3);
+  type Conversations = import('../src/data/types').MobileData['conversations'];
+  let push!: (value: Conversations) => void;
+  let stops = 0;
+  t.mock.method(client, 'stream', (_path: string, callback: (value: Conversations) => void) => { push = callback; return () => { stops++; }; });
+  const source = createRemoteSource(client, () => 'generated-id');
+  const received: Conversations[] = [];
+  source.subscribeChat!(value => received.push(value));
+  let finished = false;
+  const sending = source.sendMessage({ text: 'Summarize inbox', findingId: null }).then(reply => { finished = true; return reply; });
+  await posted.promise;
+  const snapshot = (status: 'running' | 'completed', texts: string[]): Conversations => [{ id: 'thread', findingId: null,
+    messages: [{ id: 'message', text: 'Summarize inbox', status, reply: { text: texts.at(-1)! }, replies: texts.map((text, i) => ({ id: String(i), reply: { text } })) }] }];
+  push(snapshot('running', ['Reading emails']));
+  await Promise.resolve();
+  assert.equal(finished, false);
+  source.setForeground!(false); assert.equal(stops, 1);
+  source.setForeground!(true);
+  push(snapshot('running', ['Reading emails', 'Found two actions']));
+  push(snapshot('completed', ['Reading emails', 'Found two actions', 'Done']));
+  assert.deepEqual(await sending, { text: 'Done' });
+  assert.equal(received[1]![0]!.messages[0]!.replies!.length, 2);
+  assert.deepEqual(urls, ['http://localhost:4104/gateway/messages']);
+  source.dispose!(); assert.equal(stops, 2);
 });
 
 test('uncertain submission retries retain the same idempotency key', async () => {
@@ -88,21 +119,22 @@ test('uncertain submission retries retain the same idempotency key', async () =>
   assert.deepEqual(keys, ['key-1', 'key-1']);
 });
 
-test('mobile loads restore durable pending conversations and disposal stops polling', async () => {
-  const paused = deferred<void>();
-  const entered = deferred<void>();
+test('mobile restores pending conversations and disposal rejects asynchronous requests', async () => {
+  const posted = deferred<void>();
   let calls = 0;
   const mobile = { snapshot: { tasks: [], findings: [] }, conversations: [{ id: 'thread', findingId: null, messages: [{ id: 'message', text: 'Summarize', status: 'running' }] }] };
   const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async input => {
     calls++;
-    return json(String(input).endsWith('/gateway/mobile') ? mobile : { id: 'message', conversationId: 'thread', status: 'running' });
+    if (String(input).endsWith('/gateway/mobile')) return json(mobile);
+    posted.resolve(); return json({ id: 'message', conversationId: 'thread', status: 'running' });
   }) as typeof fetch);
   await client.accept(session());
-  const source = createRemoteSource(client, () => 'id', () => { entered.resolve(); return paused.promise; });
+  const source = createRemoteSource(client, () => 'id');
   assert.deepEqual((await source.loadMobile!()).conversations, mobile.conversations);
   const sending = source.sendMessage({ text: 'Summarize', findingId: null });
-  await entered.promise; source.dispose!(); paused.resolve();
-  await assert.rejects(sending, /Session ended/);
+  const rejection = assert.rejects(sending, /Session ended/);
+  await posted.promise; await Promise.resolve(); source.dispose!();
+  await rejection;
   assert.equal(calls, 2);
 });
 
@@ -144,4 +176,89 @@ test('private agent documents use scoped uppercase document keys', async () => {
     { url: 'http://localhost:4104/gateway/documents/agent-one%3APREFERENCE', body: { text: 'Prefer concise answers.' } },
     { url: 'http://localhost:4104/gateway/documents/agent-two%3AAGENT', body: { text: 'Research requested topics.' } },
   ]);
+});
+
+test('authenticated event stream handles split frames, reconnects, and stops on cleanup', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const original = globalThis.XMLHttpRequest;
+  class FakeXHR {
+    static instances: FakeXHR[] = [];
+    status = 200; responseText = ''; headers: Record<string, string> = {}; aborted = false;
+    onprogress?: () => void; onload?: () => void; onerror?: () => void; ontimeout?: () => void;
+    constructor() { FakeXHR.instances.push(this); }
+    open(method: string, url: string) { assert.equal(method, 'GET'); assert.equal(url, 'http://localhost:4104/gateway/chat/events'); }
+    setRequestHeader(name: string, value: string) { this.headers[name] = value; }
+    send() {}
+    abort() { this.aborted = true; }
+    append(text: string) { this.responseText += text; this.onprogress?.(); }
+  }
+  globalThis.XMLHttpRequest = FakeXHR as unknown as typeof XMLHttpRequest;
+  try {
+    const client = new GatewayClient('http://localhost:4104', memoryStorage());
+    await client.accept(session());
+    const updates: unknown[] = [];
+    const stop = client.stream('/gateway/chat/events', value => updates.push(value), error => { throw error; });
+    const first = FakeXHR.instances[0]!;
+    assert.equal(first.headers.Authorization, 'Bearer access');
+    first.append(': heartbeat\n\ndata: [{"text":"hel');
+    assert.deepEqual(updates, []);
+    first.append('lo"}]\n\ndata: [{"text":"second"}]\n\n');
+    assert.deepEqual(updates, [[{ text: 'hello' }], [{ text: 'second' }]]);
+    first.onerror?.(); t.mock.timers.tick(500);
+    assert.equal(FakeXHR.instances.length, 2);
+    const second = FakeXHR.instances[1]!;
+    stop(); assert.equal(second.aborted, true);
+    second.append('data: []\n\n');
+    assert.equal(updates.length, 2);
+    t.mock.timers.tick(10000); assert.equal(FakeXHR.instances.length, 2);
+  } finally { globalThis.XMLHttpRequest = original; }
+});
+
+test('stop cancels the server request, rejects its waiter, and discards late cards', async t => {
+  const posted = deferred<void>();
+  let push!: (value: import('../src/data/types').MobileData['conversations']) => void;
+  const requests: string[] = [];
+  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async input => {
+    const url = String(input); requests.push(url);
+    if (url.endsWith('/gateway/messages')) { posted.resolve(); return json({ id: 'message', status: 'running', conversationId: 'thread' }); }
+    if (url.endsWith('/gateway/messages/cancel')) return json({ cardIds: ['late'] });
+    return json({ snapshot: { tasks: [], findings: [{ id: 'late', submissionId: 'stop-id' }, { id: 'other', submissionId: 'unrelated' }] }, conversations: [] });
+  }) as typeof fetch);
+  await client.accept(session());
+  t.mock.method(client, 'stream', (_path: string, callback: typeof push) => { push = callback; return () => {}; });
+  const source = createRemoteSource(client, () => 'stop-id');
+  source.subscribeChat!(() => {});
+  const request = { text: 'Summarise emails', findingId: null };
+  const accepted = deferred<void>();
+  const sending = source.sendMessage(request, () => accepted.resolve());
+  const rejected = assert.rejects(sending, /cancelled/);
+  await posted.promise; await accepted.promise;
+  assert.deepEqual((await source.cancelMessage!(request)).cardIds, ['late']);
+  await rejected;
+  push([{ id: 'thread', findingId: null, messages: [{ id: 'message', text: request.text, status: 'completed', reply: { text: 'Late response' } }] }]);
+  assert.deepEqual((await source.loadMobile!()).snapshot.findings.map(card => card.id), ['other']);
+  assert.equal(requests.filter(url => url.endsWith('/gateway/messages/cancel')).length, 1);
+  source.dispose!();
+});
+
+test('stop before submission acknowledgement aborts the POST and sends the same submission key', async () => {
+  const entered = deferred<void>();
+  let postSignal: AbortSignal | undefined;
+  const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async (input, init) => {
+    const body = JSON.parse(init!.body as string);
+    assert.equal(body.idempotencyKey, 'before-ack');
+    if (String(input).endsWith('/cancel')) return json({ cardIds: [] });
+    postSignal = init!.signal!; entered.resolve();
+    return new Promise<Response>((_resolve, reject) => postSignal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+  }) as typeof fetch);
+  await client.accept(session());
+  const source = createRemoteSource(client, () => 'before-ack');
+  const request = { text: 'Please work', findingId: null };
+  const sending = source.sendMessage(request);
+  const rejected = assert.rejects(sending);
+  await entered.promise;
+  await source.cancelMessage!(request);
+  assert.equal(postSignal!.aborted, true);
+  await rejected;
+  source.dispose!();
 });

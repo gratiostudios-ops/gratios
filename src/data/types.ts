@@ -30,6 +30,7 @@ export type Agent = {
 };
 
 export type Finding = {
+  submissionId?: string | null;
   id: string;
   agentId: string;
   title: string;
@@ -66,7 +67,7 @@ export type Profile = {
   preferences: string[];
 };
 
-export type SavedMessage = { id: string; text: string; reply?: Reply; status: 'queued' | 'running' | 'completed' | 'failed'; error?: string };
+export type SavedMessage = { replies?: { id: string; reply: Reply }[]; id: string; text: string; reply?: Reply; status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'; error?: string };
 export type MobileData = {
   notificationFailures?: { id: string }[];
   snapshot: Snapshot; agents: Agent[]; profile: Profile; feed: FeedGroup[]; documents: Record<string, string>;
@@ -78,7 +79,9 @@ export type MobileData = {
 export interface DataSource {
   load(): Promise<Snapshot>;
   subscribe?(onSnapshot: (snapshot: Snapshot) => void): () => void;
-  sendMessage(request: SendRequest): Promise<Reply>;
+  subscribeChat?(onConversations: (conversations: MobileData['conversations']) => void): () => void;
+  sendMessage(request: SendRequest, onAccepted?: (messageId: string, submissionId?: string) => void): Promise<Reply>;
+  cancelMessage?(request: SendRequest): Promise<{ cardIds: string[]; submissionId?: string }>;
   completeTask(taskId: string): Promise<void>;
   restoreTask(task: Task): Promise<void>;
   loadMobile?(): Promise<MobileData>;

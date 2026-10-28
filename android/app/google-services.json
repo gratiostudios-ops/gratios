@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "742479224535",
+    "project_id": "avocado-5d49b",
+    "storage_bucket": "avocado-5d49b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742479224535:android:ec30f806e70d2fc5f41a92",
+        "android_client_info": {
+          "package_name": "com.avocado.fuse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpaw0fZWxDtPREEV-9jDtYq_1d5LTrgxI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

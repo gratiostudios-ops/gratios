@@ -1,5 +1,9 @@
 // Native service credentials are supplied by the build environment, never committed.
 const { withAndroidManifest } = require('@expo/config-plugins');
+const { existsSync } = require('node:fs');
+const path = require('node:path');
+const localGoogleServices = path.join(__dirname, 'google-services.json');
+const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || (existsSync(localGoogleServices) ? localGoogleServices : undefined);
 
 module.exports = ({ config }) => ({
   ...withAndroidManifest(config, (config) => {
@@ -9,7 +13,7 @@ module.exports = ({ config }) => ({
   }),
   android: {
     ...config.android,
-    ...(process.env.GOOGLE_SERVICES_JSON ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON } : {}),
+    ...(googleServicesFile ? { googleServicesFile } : {}),
   },
   ios: {
     ...config.ios,
