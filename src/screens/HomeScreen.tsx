@@ -177,13 +177,14 @@ function TypewriterReply({ messages, progress, onAction, working, error, suggest
   </View>;
 }
 
-function Figure({ image, heroHeight, taskHeight, hasTasks }: { image: ImageReference; heroHeight: number; taskHeight: number; hasTasks: boolean }) {
+function Figure({ image, heroHeight, hasTasks }: { image: ImageReference; heroHeight: number; hasTasks: boolean }) {
   const dimensions = useRef(new Animated.Value(0)).current;
   const isFlight = image.asset === 'flight';
   const baseWidth = isFlight ? 181 : 276;
   const baseHeight = isFlight ? 173 : 207;
-  const available = Math.max(0, heroHeight - taskHeight + 7);
-  const targetHeight = Math.min(hasTasks ? baseHeight : baseHeight * 1.32, available);
+  const fullHeight = Math.min(baseHeight * 1.32, Math.max(0, heroHeight + 7));
+  // Only one banner affects the illustration; expanded reminders overlay it.
+  const targetHeight = Math.max(0, fullHeight - (hasTasks ? 45 : 0));
   useEffect(() => {
     const animation = Animated.timing(dimensions, { toValue: targetHeight, duration: 240, useNativeDriver: false });
     animation.start();
@@ -198,8 +199,8 @@ function Figure({ image, heroHeight, taskHeight, hasTasks }: { image: ImageRefer
   </View>;
 }
 
-function CanvasPage({ finding, width, height, taskHeight, hasTasks, onAction, scrollPositions }: {
-  finding: Finding; width: number; height: number; taskHeight: number; hasTasks: boolean;
+function CanvasPage({ finding, width, height, hasTasks, onAction, scrollPositions }: {
+  finding: Finding; width: number; height: number; hasTasks: boolean;
   onAction: (message: string) => void; scrollPositions: Map<string, number>;
 }) {
   const insets = useSafeAreaInsets();
@@ -207,7 +208,7 @@ function CanvasPage({ finding, width, height, taskHeight, hasTasks, onAction, sc
   return <ScrollView style={{ width, height }} contentContainerStyle={styles.canvasContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" accessibilityLabel={finding.title}
     contentOffset={{ x: 0, y: scrollPositions.get(finding.id) ?? 0 }} scrollEventThrottle={32}
     onScroll={({ nativeEvent }) => scrollPositions.set(finding.id, nativeEvent.contentOffset.y)}>
-    <Figure image={finding.image} heroHeight={heroHeight} taskHeight={taskHeight} hasTasks={hasTasks} />
+    <Figure image={finding.image} heroHeight={heroHeight} hasTasks={hasTasks} />
     <AppText accessibilityRole="header" style={styles.canvasTitle}>{finding.title}</AppText>
     <View style={{ marginTop: finding.blocks[0]?.type === 'table' ? 24 : 32 }}>
       <Content blocks={finding.blocks} onAction={onAction} />
@@ -293,7 +294,6 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
   const hasTasks = taskStack.items.length > 0;
   const bottomPadding = Math.max(8, insets.bottom) + 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
-  const taskHeight = hasTasks ? chromeHeight : 0;
   const chromeAvailableHeight = Math.max(48, canvasHeroHeight(canvasSize.height, insets.top) - insets.top - 8);
 
   useEffect(() => {
@@ -380,7 +380,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
       <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
       <View style={styles.canvasViewport} onLayout={event => setCanvasSize(event.nativeEvent.layout)}>
         {canvasSize.width > 0 && snapshot.findings.length > 0 ? <FlatList ref={pager} horizontal pagingEnabled data={snapshot.findings} keyExtractor={item => item.id}
-          showsHorizontalScrollIndicator={false} extraData={[taskHeight, canvasSize.height]} onViewableItemsChanged={onVisible}
+          showsHorizontalScrollIndicator={false} extraData={[hasTasks, canvasSize.height]} onViewableItemsChanged={onVisible}
           onScrollBeginDrag={() => { canvasGesture.current = true; }}
           onMomentumScrollEnd={({ nativeEvent }) => {
             if (!canvasGesture.current) return;
@@ -391,7 +391,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
           }}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }} keyboardShouldPersistTaps="handled"
           getItemLayout={(_, index) => ({ length: canvasSize.width, offset: index * canvasSize.width, index })}
-          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} taskHeight={taskHeight} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
+          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
         /> : <View style={styles.empty}>
           <View style={styles.welcomeCard} accessibilityLabel="Welcome card">
             <View style={styles.welcomeIcon}><Icon name="greeting" color="#b8cfff" /></View>
@@ -401,9 +401,9 @@ What’s on your mind?</AppText>
           </View>
         </View>}
         <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} style={styles.canvasFade} />
+        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { height: insets.top + 8 + 14 + 8 + 45 / 2 }]} />}
         {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
           onLayout={({ nativeEvent: { layout: chrome } }) => setChromeHeight(previous => previous === chrome.height ? previous : chrome.height)}>
-          <LinearGradient pointerEvents="none" colors={['#000000', '#000000', '#00000000']} locations={[0, 0.86, 1]} style={StyleSheet.absoluteFill} />
           <ScrollView style={{ maxHeight: chromeAvailableHeight, flexGrow: 0 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {taskList}
           </ScrollView>
@@ -475,6 +475,7 @@ const styles = StyleSheet.create({
   canvasTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 26, color: colors.text, textAlign: 'center', marginRight: 7 },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 252 },
   canvasFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 28 },
+  bannerBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#000000' },
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
   welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center' },
   welcomeIcon: { marginBottom: 24, padding: 20, borderRadius: 40, backgroundColor: '#24334f' },

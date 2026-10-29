@@ -27,8 +27,8 @@ function AgendaCheckbox({item}:{item:{id:string;kind:Task['kind'];completed:bool
       const task:Task={id:live.id,kind:live.kind,title:live.title,...(live.dueAt?{dueAt:live.dueAt}:{})};
       void (checked?restoreTask(task):completeTask(item.id,item.kind)).finally(()=>setPending(false));
     }}>
-    <View style={[styles.checkbox,{borderColor:color,backgroundColor:checked?color:'transparent',opacity:pending?0.5:1}]}>
-      {checked&&<AppText style={styles.checkmark}>✓</AppText>}
+    <View style={[styles.checkbox,{borderColor:checked?'transparent':color,opacity:pending?0.5:1}]}>
+      {checked&&<AppText style={[styles.checkmark,{color}]}>✓</AppText>}
     </View>
   </Pressable>;
 }
@@ -77,15 +77,15 @@ export function Content({ blocks, onAction }: { blocks: ContentBlock[]; onAction
 const styles = StyleSheet.create({
   blocks: { gap: 16 },
   heading: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 22, marginHorizontal: 4 },
-  paragraph: { color: colors.body, fontSize: 16, lineHeight: 21, marginHorizontal: 4, marginTop: -12 },
+  paragraph: { fontFamily: fonts.medium, color: colors.body, fontSize: 16, lineHeight: 21, marginHorizontal: 4, marginTop: -12 },
   numberedList: { paddingRight: 29 },
   numberedRow: { flexDirection: 'row', alignItems: 'center', minHeight: 55 },
-  number: { fontFamily: fonts.regular, color: colors.faint, fontSize: 16, lineHeight: 21, textAlign: 'center', width: 30, marginRight: 1 },
+  number: { fontFamily: fonts.medium, color: colors.faint, fontSize: 16, lineHeight: 21, textAlign: 'center', width: 30, marginRight: 1 },
   numberedBody: { flex: 1, paddingLeft: 14, paddingVertical: 9, minHeight: 55, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.divider },
-  listText: { color: colors.body, fontSize: 16, lineHeight: 21 },
+  listText: { fontFamily: fonts.medium, color: colors.body, fontSize: 16, lineHeight: 21 },
   table: { backgroundColor: colors.surface, borderRadius: 13, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 },
   tableTitle: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 19 },
-  subtitle: { fontSize: 12, lineHeight: 14, color: colors.secondary, marginTop: 5, marginBottom: 12 },
+  subtitle: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 14, color: colors.secondary, marginTop: 5, marginBottom: 12 },
   tableRow: { flexDirection: 'row', borderBottomColor: colors.tableDivider, borderBottomWidth: 1, paddingVertical: 12, gap: 12, minHeight: 49, alignItems: 'center' },
   tableText: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
   cell: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
@@ -94,6 +94,6 @@ const styles = StyleSheet.create({
   showMoreText: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 14, color: colors.blue },
   checkTarget: { width: 32, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   checkbox: { width: 20, height: 20, borderWidth: 2, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  checkmark: { fontFamily: fonts.bold, color: '#fff', fontSize: 14 },
+  checkmark: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 24 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

@@ -46,10 +46,11 @@ function useData(source: DataSource) {
       if (!mounted.current || loadRevision !== revision.current || cacheIdentity && cacheIdentity !== gateway.cacheIdentity) return;
       setData(previous => ({...next,
         ...(next.agendaError?{agendaItems:previous.agendaItems,snapshot:{...next.snapshot,tasks:previous.snapshot.tasks}}:{}),
+        ...(next.agendaTasksError&&!next.agendaError?{agendaItems:[...(previous.agendaItems??[]).filter(item=>item.kind==='task'),...(next.agendaItems??[]).filter(item=>item.kind==='calendar')],snapshot:{...next.snapshot,tasks:[...previous.snapshot.tasks.filter(item=>item.kind==='task'),...next.snapshot.tasks.filter(item=>item.kind==='calendar')]}}:{}),
         ...(loadedChatRevision===chatRevision.current?{}:{conversations:previous.conversations}),
       })); setLoading(false);
-      if(next.agendaError)setError(next.agendaError);
-      if (cache && !next.agendaError) void cache.write(next).catch(() => {});
+      if(next.agendaError||next.agendaTasksError)setError(next.agendaError??next.agendaTasksError!);
+      if (cache && !next.agendaError && !next.agendaTasksError) void cache.write(next).catch(() => {});
       const failures = next.notificationFailures ?? [];
       if (failures.some(failure => !reportedNotificationFailures.current.has(failure.id))) {
         setError('A notification could not be delivered to your phone.');
