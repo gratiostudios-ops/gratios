@@ -54,7 +54,7 @@ function Shell() {
     <StatusBar hidden={false} style="light" />
     <View style={styles.content}>
     <TabPager active={tab}>
-      <HomeScreen {...menuActions} isActive={tab === 'home'} />
+      <HomeScreen {...menuActions} isActive={tab === 'home'} onNewCard={() => navigate('home')} />
       <ProfileScreen {...menuActions} />
     </TabPager>
     </View>

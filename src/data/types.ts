@@ -1,6 +1,6 @@
 export type AssetKey = 'mail' | 'brief' | 'flight' | 'gym' | 'video' | 'avatar' | 'phone' | 'car' | 'skoda' | 'watch' | 'calendar';
 export type ImageReference = { asset: AssetKey; uri?: never } | { uri: string; asset?: never };
-export type AgentIcon = 'flight' | 'mail' | 'gym' | 'video' | 'news' | 'brief' | 'calendar' | 'date' | 'greeting';
+export type AgentIcon = 'general' | 'flight' | 'mail' | 'gym' | 'video' | 'news' | 'brief' | 'calendar' | 'date' | 'greeting';
 export type TableText = string | { text: string; tone?: 'highlight' | 'muted' }[];
 export type Action = { id: string; label: string; message: string };
 

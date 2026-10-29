@@ -1,4 +1,3 @@
-import {TodayAgenda} from '../components/TodayAgenda';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, AppState, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
@@ -236,7 +235,7 @@ function Composer({ value, setValue, onSend, onCancel, running, keyboardActive }
   </View>;
 }
 
-export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActive: boolean }) {
+export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void }) {
   const { snapshot, loading, agents, completeTask, restoreTask, conversation, send, cancel, markCardSeen } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -263,6 +262,18 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
   const canvasGesture = useRef(false);
   const homeActive = useRef(isActive);
   homeActive.current = isActive && AppState.currentState === 'active';
+  const knownCards = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    const incoming = knownCards.current && snapshot.findings.find(card => !knownCards.current!.has(card.id));
+    if (!knownCards.current) knownCards.current = new Set();
+    for (const card of snapshot.findings) knownCards.current.add(card.id);
+    if (incoming) {
+      canvasGesture.current = false;
+      setSelectedId(incoming.id);
+      onNewCard();
+    }
+  }, [snapshot.findings, loading, onNewCard]);
   const finding = snapshot.findings.find(item => item.id === selectedId) ?? snapshot.findings[0] ?? null;
   const activeId = finding?.id ?? null;
   const seenNavigationIcons = new Set<string>();
@@ -371,6 +382,7 @@ export function HomeScreen({ isActive, ...menuActions }: MenuActions & { isActiv
           showsHorizontalScrollIndicator={false} extraData={[taskHeight, canvasSize.height]} onViewableItemsChanged={onVisible}
           onScrollBeginDrag={() => { canvasGesture.current = true; }}
           onMomentumScrollEnd={({ nativeEvent }) => {
+            if (!canvasGesture.current) return;
             canvasGesture.current = false;
             if (!isActive || !canvasSize.width) return;
             const page = snapshot.findings[Math.round(nativeEvent.contentOffset.x / canvasSize.width)];
@@ -396,7 +408,7 @@ What’s on your mind?</AppText>
           </ScrollView>
         </View>}
       </View>
-      <View style={styles.findingNavigation}><TodayAgenda />
+      <View style={styles.findingNavigation}>
 
         {snapshot.findings.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.findingIcons}>
           {navigationAgents.map(({ finding: item, index, agent, icon, key }, navigationIndex) => {

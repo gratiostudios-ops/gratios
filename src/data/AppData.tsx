@@ -174,10 +174,12 @@ function useData(source: DataSource) {
   }, [source, data.snapshot.findings]);
   useEffect(() => {
     const expire = () => setData(previous => {
-      const findings = previous.snapshot.findings.filter(card => !card.expiresAt || Date.parse(card.expiresAt) > Date.now());
+      const findings = previous.snapshot.findings.filter((card, index) => index < 4 || !card.expiresAt || Date.parse(card.expiresAt) > Date.now());
       return findings.length === previous.snapshot.findings.length ? previous : { ...previous, snapshot: { ...previous.snapshot, findings } };
     });
-    const times = data.snapshot.findings.flatMap(card => card.expiresAt ? [Date.parse(card.expiresAt)] : []).filter(Number.isFinite);
+    expire();
+    const now = Date.now();
+    const times = data.snapshot.findings.slice(4).flatMap(card => card.expiresAt ? [Date.parse(card.expiresAt)] : []).filter(time => Number.isFinite(time) && time > now);
     const timer = times.length ? setTimeout(expire, Math.max(0, Math.min(...times) - Date.now())) : undefined;
     const subscription = AppState.addEventListener('change', state => { if (state === 'active') expire(); });
     return () => { if (timer) clearTimeout(timer); subscription.remove(); };

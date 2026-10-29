@@ -16,7 +16,7 @@ import Greeting from '../../assets/phosphor/greeting.svg';
 import type { AgentIcon } from '../data/types';
 
 export type IconName = AgentIcon | 'home' | 'suggestions' | 'profile' | 'send' | 'stop';
-const icons = { home: Home, suggestions: Lightbulb, profile: Profile, send: Arrow,
+const icons = { general: Lightbulb, home: Home, suggestions: Lightbulb, profile: Profile, send: Arrow,
   mail: Mail, flight: Flight, gym: Gym, video: Video, news: News, brief: Brief,
   calendar: Calendar, date: DateIcon, greeting: Greeting };
 export function Icon({ name, color = '#ffffff', size = 22 }: { name: IconName; color?: string; size?: number }) {
