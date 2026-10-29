@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 import { registerPhonePush } from '../notifications';
 import * as Crypto from 'expo-crypto';
 import { mobileCache } from './mobile-cache';
+import {applyCompletion,applyPendingCompletions,type CompletionUpdate} from './agenda-state';
 import { conversationKey, sessionMessage } from './conversations';
 import { demoData } from './demo';
 import { createDemoSource } from './source';
@@ -22,6 +23,9 @@ const demoMobile: MobileData = {
 };
 function useData(source: DataSource) {
   const [data, setData] = useState<MobileData>(demoMode ? demoMobile : emptyData);
+  const latestData=useRef(data);
+  latestData.current=data;
+  const completionUpdates=useRef(new Map<string,CompletionUpdate>());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Record<string, Conversation>>({});
@@ -44,13 +48,13 @@ function useData(source: DataSource) {
       const loadedChatRevision = chatRevision.current;
       const next = source.loadMobile ? await source.loadMobile() : { ...demoMobile, snapshot: await source.load() };
       if (!mounted.current || loadRevision !== revision.current || cacheIdentity && cacheIdentity !== gateway.cacheIdentity) return;
-      setData(previous => ({...next,
+      setData(previous => applyPendingCompletions({...next,
         ...(next.agendaError?{agendaItems:previous.agendaItems,snapshot:{...next.snapshot,tasks:previous.snapshot.tasks}}:{}),
         ...(next.agendaTasksError&&!next.agendaError?{agendaItems:[...(previous.agendaItems??[]).filter(item=>item.kind==='task'),...(next.agendaItems??[]).filter(item=>item.kind==='calendar')],snapshot:{...next.snapshot,tasks:[...previous.snapshot.tasks.filter(item=>item.kind==='task'),...next.snapshot.tasks.filter(item=>item.kind==='calendar')]}}:{}),
         ...(loadedChatRevision===chatRevision.current?{}:{conversations:previous.conversations}),
-      })); setLoading(false);
+      },completionUpdates.current)); setLoading(false);
       if(next.agendaError||next.agendaTasksError)setError(next.agendaError??next.agendaTasksError!);
-      if (cache && !next.agendaError && !next.agendaTasksError) void cache.write(next).catch(() => {});
+      if (cache && !next.agendaError && !next.agendaTasksError && !completionUpdates.current.size) void cache.write(next).catch(() => {});
       const failures = next.notificationFailures ?? [];
       if (failures.some(failure => !reportedNotificationFailures.current.has(failure.id))) {
         setError('A notification could not be delivered to your phone.');
@@ -100,24 +104,32 @@ function useData(source: DataSource) {
     const interval = setInterval(() => { if (foreground) update(); }, 10000);
     return () => { mounted.current = false; unsubscribe?.(); unsubscribeChat?.(); subscription.remove(); clearInterval(interval); source.dispose?.(); };
   }, [source, refresh, cache]);
-  const completeTask = useCallback(async (id: string, kind: Task['kind']='task') => {
+  const changeCompletion=useCallback(async(task:Task,completed:boolean)=>{
+    if(completionUpdates.current.has(task.id))return false;
+    const before=latestData.current;
+    const previousItem=before.agendaItems?.find(item=>item.id===task.id);
+    const previousBanner=before.snapshot.tasks.find(item=>item.id===task.id);
+    const update:CompletionUpdate={completed,...(!completed?{task}:{})};
+    completionUpdates.current.set(task.id,update);
     revision.current++;
-    try {
-      await source.completeTask(id,kind);
-      revision.current++;
-      if(mounted.current)setData(previous => ({ ...previous, agendaItems:previous.agendaItems?.map(item=>item.id===id?{...item,completed:true}:item),snapshot: { ...previous.snapshot, tasks: previous.snapshot.tasks.filter(task => task.id !== id) } }));
+    setData(previous=>applyCompletion(previous,task.id,update));
+    try{
+      if(completed)await source.completeTask(task.id,task.kind);
+      else await source.restoreTask(task);
       return true;
-    } catch { if (mounted.current) setError('Could not mark that item done. Please try again.'); return false; }
-  }, [source]);
-  const restoreTask = useCallback(async (task: Task) => {
-    revision.current++;
-    try {
-      await source.restoreTask(task);
+    }catch{
+      if(mounted.current){
+        setData(previous=>applyCompletion(previous,task.id,{completed:previousItem?.completed??!completed,...(previousBanner?{task:previousBanner}:{})}));
+        setError(completed?'Could not mark that item done. Please try again.':'Could not undo that item. Please try again.');
+      }
+      return false;
+    }finally{
+      completionUpdates.current.delete(task.id);
       revision.current++;
-      if(mounted.current)setData(previous => ({...previous,agendaItems:previous.agendaItems?.map(item=>item.id===task.id?{...item,completed:false}:item),snapshot:{...previous.snapshot,tasks:previous.snapshot.tasks.some(item=>item.id===task.id)?previous.snapshot.tasks:[...previous.snapshot.tasks,task]}}));
-      return true;
-    } catch { if (mounted.current) setError('Could not undo that item. Please try again.'); return false; }
-  }, [source]);
+    }
+  },[source]);
+  const completeTask=useCallback((id:string,kind:Task['kind']='task')=>changeCompletion({id,kind,title:''},true),[changeCompletion]);
+  const restoreTask=useCallback((task:Task)=>changeCompletion(task,false),[changeCompletion]);
   const send = useCallback(async (findingId: string | null, text: string, agentId?: string) => {
     const target = agentId ?? data.snapshot.findings.find(card => card.id === findingId)?.agentId;
     const key = conversationKey({ agentId: target, findingId });

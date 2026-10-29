@@ -194,6 +194,8 @@ function Figure({ image, heroHeight, hasTasks }: { image: ImageReference; heroHe
     <Animated.View style={{ width: Animated.multiply(dimensions, baseWidth / baseHeight), height: dimensions, overflow: 'hidden', marginBottom: -7 }}>
       <SafeImage image={image} allowAvatar={false} resizeMode="contain" accessibilityLabel="Agent illustration" style={[
         StyleSheet.absoluteFill, { width: '100%', height: '100%' },
+        // The supplied mail artwork has wide transparent margins; fit its visible envelope.
+        image.asset === 'mail' && { width: '182%', height: '280%', top: '-95%', left: '-44%' },
       ]} />
     </Animated.View>
   </View>;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { colors, fonts } from '../theme';
 import { useAppData } from '../data/AppData';
 import type { ContentBlock, TableText, Task } from '../data/types';
@@ -27,8 +28,8 @@ function AgendaCheckbox({item}:{item:{id:string;kind:Task['kind'];completed:bool
       const task:Task={id:live.id,kind:live.kind,title:live.title,...(live.dueAt?{dueAt:live.dueAt}:{})};
       void (checked?restoreTask(task):completeTask(item.id,item.kind)).finally(()=>setPending(false));
     }}>
-    <View style={[styles.checkbox,{borderColor:checked?'transparent':color,opacity:pending?0.5:1}]}>
-      {checked&&<AppText style={[styles.checkmark,{color}]}>✓</AppText>}
+    <View style={[styles.checkbox,{borderColor:color,borderWidth:checked?0:2}]}>
+      {checked&&<Svg width={20} height={20} viewBox="0 0 20 20"><Path d="M4 10 8 14 16 6" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></Svg>}
     </View>
   </Pressable>;
 }
@@ -40,8 +41,7 @@ function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
   return <View style={styles.table}>
     <RichText style={styles.tableTitle} text={block.title} />
     {block.subtitle ? <RichText style={styles.subtitle} text={block.subtitle} /> : null}
-    <ScrollView horizontal={block.columns.length > 2} scrollEnabled={block.columns.length > 2} showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-      <View style={{ flex: 1, minWidth: block.columns.length > 2 ? block.columns.length * 130 : undefined }}>
+    <View style={{ alignSelf: 'stretch' }}>
         {block.columns.some(column => column.label) && <View style={styles.tableRow}>
           {block.rows.some(row=>row.agenda)&&<View style={styles.checkTarget}/>}{block.columns.map(column => <AppText key={column.id} style={[styles.cell, styles.columnLabel, { textAlign: column.align ?? 'left' }]}>{column.label}</AppText>)}
         </View>}
@@ -49,8 +49,7 @@ function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
           {row.agenda?<AgendaCheckbox item={row.agenda}/>:block.rows.some(item=>item.agenda)?<View style={styles.checkTarget}/>:null}
           {block.columns.map((column, index) => <AppText key={column.id} style={[styles.cell, { textAlign: column.align ?? 'left' }]}><TableValue value={row.cells[index] ?? ''} /></AppText>)}
         </View>)}
-      </View>
-    </ScrollView>
+    </View>
     {canExpand && <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Show fewer rows' : 'Show more rows'} accessibilityState={{ expanded }} hitSlop={8} onPress={() => setExpanded(previous => !previous)} style={styles.showMore}>
       <AppText style={styles.showMoreText}>{expanded ? 'Show Less −' : 'Show More +'}</AppText>
     </Pressable>}
@@ -88,12 +87,11 @@ const styles = StyleSheet.create({
   subtitle: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 14, color: colors.secondary, marginTop: 5, marginBottom: 12 },
   tableRow: { flexDirection: 'row', borderBottomColor: colors.tableDivider, borderBottomWidth: 1, paddingVertical: 12, gap: 12, minHeight: 49, alignItems: 'center' },
   tableText: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
-  cell: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
+  cell: { flex: 1, minWidth: 0, flexShrink: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
   columnLabel: { fontFamily: fonts.bold, color: colors.secondary, fontSize: 12 },
   showMore: { paddingTop: 11, paddingBottom: 1, alignItems: 'center', minHeight: 26 },
   showMoreText: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 14, color: colors.blue },
-  checkTarget: { width: 32, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  checkTarget: { width: 32, flexShrink: 0, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   checkbox: { width: 20, height: 20, borderWidth: 2, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  checkmark: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 24 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });
