@@ -7,16 +7,19 @@ import { colors, fonts } from '../theme';
 import { registerPhonePush } from '../notifications';
 
 type Configuration = { agents: { id: string; name: string; enabled: boolean; role?: string }[]; permissions: { toolName: string; granted: boolean }[] };
+type CalendarStatus={connected:boolean;tasksConnected:boolean;accountEmail:string|null};
 type GmailStatus = { connected: boolean; status: string; accountEmail: string | null };
 export function AccountSettings() {
   const { refresh, isDemo } = useAppData();
   const auth = useAuth();
   const [config, setConfig] = useState<Configuration | null>(null);
   const [gmail, setGmail] = useState<GmailStatus | null>(null);
+  const [calendar,setCalendar]=useState<CalendarStatus|null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const load = async () => {
     setConfig(await gateway.request<Configuration>('/gateway/config'));
+    try{setCalendar(await gateway.request<CalendarStatus>('/integrations/calendar'));}catch{setCalendar(null);}
     try { setGmail(await gateway.request<GmailStatus>('/integrations/gmail')); } catch { setGmail(null); }
   };
   useEffect(() => {
@@ -43,12 +46,13 @@ export function AccountSettings() {
     {config?.permissions.map(permission => <View key={permission.toolName} style={styles.row}><AppText style={styles.choice}>{permission.toolName}</AppText><Switch accessibilityLabel={`Allow ${permission.toolName}`} value={permission.granted} disabled={busy} onValueChange={granted => { void run(async () => { await gateway.request('/gateway/permissions/' + encodeURIComponent(permission.toolName), { method: 'PUT', body: JSON.stringify({ granted }) }); await load(); }); }} /></View>)}
     <AppText accessibilityRole="header" style={styles.title}>Connected accounts</AppText>
     <AppText style={styles.body}>{gmail?.connected ? 'Gmail connected: ' + gmail.accountEmail : 'Gmail is not connected'}</AppText>
+    <AppText style={styles.body}>{calendar?.connected?'Calendar connected: '+calendar.accountEmail:'Calendar is not connected'}{calendar?.connected&&!calendar.tasksConnected?' · Reconnect to enable Tasks':''}</AppText>
     <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => { void run(async () => {
       const result=await gateway.request<{authorizationUrl:string}>('/integrations/calendar/connect',{method:'POST',body:'{}'});
       if(new URL(result.authorizationUrl).origin!=='https://accounts.google.com')throw new Error('Invalid Google URL');
       await Linking.openURL(result.authorizationUrl);
-    }); }}><AppText style={styles.buttonText}>Connect Google Calendar</AppText></Pressable>
-    <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void run(async () => {await gateway.request('/integrations/calendar',{method:'DELETE'});await refresh();setMessage('Calendar disconnected');}); }}><AppText style={styles.body}>Disconnect Calendar</AppText></Pressable>
+    }); }}><AppText style={styles.buttonText}>{calendar?.connected?'Reconnect Calendar and Tasks':'Connect Calendar and Tasks'}</AppText></Pressable>
+    <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void run(async () => {await gateway.request('/integrations/calendar',{method:'DELETE'});await load();setMessage('Calendar and Tasks disconnected');}); }}><AppText style={styles.body}>Disconnect Calendar and Tasks</AppText></Pressable>
     <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => { void run(async () => {
       const result = await gateway.request<{ authorizationUrl: string }>('/integrations/gmail/connect', { method: 'POST', body: '{}' });
       if (new URL(result.authorizationUrl).origin !== 'https://accounts.google.com') throw new Error('Invalid Google authorization URL.');

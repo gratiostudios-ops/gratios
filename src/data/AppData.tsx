@@ -44,8 +44,12 @@ function useData(source: DataSource) {
       const loadedChatRevision = chatRevision.current;
       const next = source.loadMobile ? await source.loadMobile() : { ...demoMobile, snapshot: await source.load() };
       if (!mounted.current || loadRevision !== revision.current || cacheIdentity && cacheIdentity !== gateway.cacheIdentity) return;
-      setData(previous => loadedChatRevision === chatRevision.current ? next : { ...next, conversations: previous.conversations }); setLoading(false);
-      if (cache) void cache.write(next).catch(() => {});
+      setData(previous => ({...next,
+        ...(next.agendaError?{agendaItems:previous.agendaItems,snapshot:{...next.snapshot,tasks:previous.snapshot.tasks}}:{}),
+        ...(loadedChatRevision===chatRevision.current?{}:{conversations:previous.conversations}),
+      })); setLoading(false);
+      if(next.agendaError)setError(next.agendaError);
+      if (cache && !next.agendaError) void cache.write(next).catch(() => {});
       const failures = next.notificationFailures ?? [];
       if (failures.some(failure => !reportedNotificationFailures.current.has(failure.id))) {
         setError('A notification could not be delivered to your phone.');
@@ -95,16 +99,24 @@ function useData(source: DataSource) {
     const interval = setInterval(() => { if (foreground) update(); }, 10000);
     return () => { mounted.current = false; unsubscribe?.(); unsubscribeChat?.(); subscription.remove(); clearInterval(interval); source.dispose?.(); };
   }, [source, refresh, cache]);
-  const completeTask = useCallback(async (id: string) => {
-    setData(previous => ({ ...previous, snapshot: { ...previous.snapshot, tasks: previous.snapshot.tasks.filter(task => task.id !== id) } }));
-    try { await source.completeTask(id); }
-    catch { if (mounted.current) setError('Could not complete that task. Please try again.'); await refresh().catch(() => {}); }
-  }, [source, refresh]);
+  const completeTask = useCallback(async (id: string, kind: Task['kind']='task') => {
+    revision.current++;
+    try {
+      await source.completeTask(id,kind);
+      revision.current++;
+      if(mounted.current)setData(previous => ({ ...previous, agendaItems:previous.agendaItems?.map(item=>item.id===id?{...item,completed:true}:item),snapshot: { ...previous.snapshot, tasks: previous.snapshot.tasks.filter(task => task.id !== id) } }));
+      return true;
+    } catch { if (mounted.current) setError('Could not mark that item done. Please try again.'); return false; }
+  }, [source]);
   const restoreTask = useCallback(async (task: Task) => {
-    setData(previous => previous.snapshot.tasks.some(item => item.id === task.id) ? previous : { ...previous, snapshot: { ...previous.snapshot, tasks: [task, ...previous.snapshot.tasks] } });
-    try { await source.restoreTask(task); }
-    catch { if (mounted.current) setError('Could not undo that task. Please try again.'); await refresh().catch(() => {}); }
-  }, [source, refresh]);
+    revision.current++;
+    try {
+      await source.restoreTask(task);
+      revision.current++;
+      if(mounted.current)setData(previous => ({...previous,agendaItems:previous.agendaItems?.map(item=>item.id===task.id?{...item,completed:false}:item),snapshot:{...previous.snapshot,tasks:previous.snapshot.tasks.some(item=>item.id===task.id)?previous.snapshot.tasks:[...previous.snapshot.tasks,task]}}));
+      return true;
+    } catch { if (mounted.current) setError('Could not undo that item. Please try again.'); return false; }
+  }, [source]);
   const send = useCallback(async (findingId: string | null, text: string, agentId?: string) => {
     const target = agentId ?? data.snapshot.findings.find(card => card.id === findingId)?.agentId;
     const key = conversationKey({ agentId: target, findingId });

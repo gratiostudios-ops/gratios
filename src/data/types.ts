@@ -14,7 +14,7 @@ export type ContentBlock =
       title: string;
       subtitle?: string;
       columns: { id: string; label?: string; align?: 'left' | 'right' }[];
-      rows: { id: string; cells: TableText[] }[];
+      rows: { id: string; cells: TableText[]; agenda?: { id: string; kind: 'task' | 'calendar'; completed: boolean } }[];
       previewRows?: number;
     }
   | { id: string; type: 'actions'; actions: Action[] };
@@ -43,7 +43,8 @@ export type Finding = {
   expiresAt?: string | null;
 };
 
-export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string; dueAt?: string };
+export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string; dueAt?: string; dueDate?: string };
+export type AgendaItem = Omit<Task, 'dueAt'> & { dueAt?: string | null; completed: boolean; allDay: boolean };
 export type Snapshot = { tasks: Task[]; findings: Finding[] };
 export type Reply = { version?: 1; text: string; highlights?: string[]; actions?: Action[] };
 export type SendRequest = { text: string; findingId: string | null; agentId?: string };
@@ -70,6 +71,8 @@ export type Profile = {
 export type SavedMessage = { replies?: { id: string; reply: Reply }[]; id: string; text: string; reply?: Reply; status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'; error?: string };
 export type MobileData = {
   notificationFailures?: { id: string }[];
+  agendaError?: string;
+  agendaItems?: AgendaItem[];
   snapshot: Snapshot; agents: Agent[]; profile: Profile; feed: FeedGroup[]; documents: Record<string, string>;
   conversations: { id: string; findingId: string | null; agentId?: string; role?: string; history?: { id: string; role: 'user' | 'assistant'; text: string; reply?: Reply; createdAt: string }[]; messages: SavedMessage[] }[];
 };
@@ -82,7 +85,7 @@ export interface DataSource {
   subscribeChat?(onConversations: (conversations: MobileData['conversations']) => void): () => void;
   sendMessage(request: SendRequest, onAccepted?: (messageId: string, submissionId?: string) => void): Promise<Reply>;
   cancelMessage?(request: SendRequest): Promise<{ cardIds: string[]; submissionId?: string }>;
-  completeTask(taskId: string): Promise<void>;
+  completeTask(taskId: string, kind?: Task['kind']): Promise<void>;
   restoreTask(task: Task): Promise<void>;
   loadMobile?(): Promise<MobileData>;
   saveDocument?(id: string, text: string): Promise<void>;

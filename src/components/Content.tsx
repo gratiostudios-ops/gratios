@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, fonts } from '../theme';
-import type { ContentBlock, TableText } from '../data/types';
+import { useAppData } from '../data/AppData';
+import type { ContentBlock, TableText, Task } from '../data/types';
 import { ActionChip, AppText } from './UI';
 import { RichText } from './RichText';
 
@@ -14,6 +15,24 @@ function TableValue({ value }: { value: TableText }) {
   ]} />)}</>;
 }
 
+function AgendaCheckbox({item}:{item:{id:string;kind:Task['kind'];completed:boolean}}){
+  const {agendaItems,completeTask,restoreTask}=useAppData();
+  const [pending,setPending]=useState(false);
+  const live=agendaItems?.find(candidate=>candidate.id===item.id&&candidate.kind===item.kind);
+  const checked=live?.completed??item.completed,color=item.kind==='task'?colors.task:colors.calendar;
+  return <Pressable accessibilityRole="checkbox" accessibilityLabel={`Mark ${item.kind==='task'?'task':'calendar event'} ${checked?'incomplete':'completed'}`}
+    accessibilityState={{checked,disabled:pending||!live}} disabled={pending||!live} style={styles.checkTarget} onPress={()=>{
+      if(!live)return;
+      setPending(true);
+      const task:Task={id:live.id,kind:live.kind,title:live.title,...(live.dueAt?{dueAt:live.dueAt}:{})};
+      void (checked?restoreTask(task):completeTask(item.id,item.kind)).finally(()=>setPending(false));
+    }}>
+    <View style={[styles.checkbox,{borderColor:color,backgroundColor:checked?color:'transparent',opacity:pending?0.5:1}]}>
+      {checked&&<AppText style={styles.checkmark}>✓</AppText>}
+    </View>
+  </Pressable>;
+}
+
 function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
   const [expanded, setExpanded] = useState(false);
   const visibleRows = expanded || !block.previewRows ? block.rows : block.rows.slice(0, block.previewRows);
@@ -24,9 +43,10 @@ function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
     <ScrollView horizontal={block.columns.length > 2} scrollEnabled={block.columns.length > 2} showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
       <View style={{ flex: 1, minWidth: block.columns.length > 2 ? block.columns.length * 130 : undefined }}>
         {block.columns.some(column => column.label) && <View style={styles.tableRow}>
-          {block.columns.map(column => <AppText key={column.id} style={[styles.cell, styles.columnLabel, { textAlign: column.align ?? 'left' }]}>{column.label}</AppText>)}
+          {block.rows.some(row=>row.agenda)&&<View style={styles.checkTarget}/>}{block.columns.map(column => <AppText key={column.id} style={[styles.cell, styles.columnLabel, { textAlign: column.align ?? 'left' }]}>{column.label}</AppText>)}
         </View>}
         {visibleRows.map(row => <View key={row.id} style={styles.tableRow}>
+          {row.agenda?<AgendaCheckbox item={row.agenda}/>:block.rows.some(item=>item.agenda)?<View style={styles.checkTarget}/>:null}
           {block.columns.map((column, index) => <AppText key={column.id} style={[styles.cell, { textAlign: column.align ?? 'left' }]}><TableValue value={row.cells[index] ?? ''} /></AppText>)}
         </View>)}
       </View>
@@ -64,13 +84,16 @@ const styles = StyleSheet.create({
   numberedBody: { flex: 1, paddingLeft: 14, paddingVertical: 9, minHeight: 55, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.divider },
   listText: { color: colors.body, fontSize: 16, lineHeight: 21 },
   table: { backgroundColor: colors.surface, borderRadius: 13, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 },
-  tableTitle: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 19 },
+  tableTitle: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 19 },
   subtitle: { fontSize: 12, lineHeight: 14, color: colors.secondary, marginTop: 5, marginBottom: 12 },
-  tableRow: { flexDirection: 'row', borderBottomColor: colors.tableDivider, borderBottomWidth: 1, paddingVertical: 8, gap: 12, minHeight: 33 },
-  tableText: { fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
-  cell: { flex: 1, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
-  columnLabel: { fontFamily: fonts.semibold, color: colors.secondary, fontSize: 12 },
+  tableRow: { flexDirection: 'row', borderBottomColor: colors.tableDivider, borderBottomWidth: 1, paddingVertical: 12, gap: 12, minHeight: 49, alignItems: 'center' },
+  tableText: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
+  cell: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, color: '#d8d8d8' },
+  columnLabel: { fontFamily: fonts.bold, color: colors.secondary, fontSize: 12 },
   showMore: { paddingTop: 11, paddingBottom: 1, alignItems: 'center', minHeight: 26 },
   showMoreText: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 14, color: colors.blue },
+  checkTarget: { width: 32, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  checkbox: { width: 20, height: 20, borderWidth: 2, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  checkmark: { fontFamily: fonts.bold, color: '#fff', fontSize: 14 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

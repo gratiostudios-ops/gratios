@@ -9,7 +9,7 @@ import { AppText } from './UI';
 const completionDuration = 1000;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: string) => void | Promise<void> }) {
+export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: string) => boolean | Promise<boolean> }) {
   const [checked, setChecked] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
   const checkmark = useRef(new Animated.Value(0)).current;
@@ -38,7 +38,15 @@ export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: st
     ]);
     animation.current.start();
     // Keep the completed state visible for one second before updating the source.
-    timer.current = setTimeout(() => { timer.current = null; void onComplete(task.id); }, completionDuration);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      void (async()=>{
+        let success=false;
+        try{success=await onComplete(task.id);}finally{
+          if(!success){animation.current?.stop();progress.setValue(0);checkmark.setValue(0);pending.current=false;setChecked(false);}
+        }
+      })();
+    }, completionDuration);
   };
 
   return <Animated.View style={checked ? {
@@ -67,7 +75,7 @@ export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: st
       <Animated.View style={[styles.copy, checked && {
         opacity: progress.interpolate({ inputRange: [0, 0.2, 1], outputRange: [1, 0.85, 0.85] }),
       }]}>
-        <AppText style={styles.title}>{task.title}</AppText>
+        <AppText numberOfLines={1} ellipsizeMode="tail" style={styles.title}>{task.title}</AppText>
         {task.due ? <AppText style={styles.due}>{task.due}</AppText> : null}
       </Animated.View>
     </Pressable>
@@ -77,7 +85,7 @@ export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: st
 
 const styles = StyleSheet.create({
   card: { minHeight: 45, borderRadius: 14, paddingHorizontal: 28, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 18, overflow: 'hidden' },
-  checkbox: { width: 16, height: 16, borderWidth: 2, borderColor: '#f3f3f3', borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  checkbox: { width: 16, height: 16, borderWidth: 2, borderColor: '#f3f3f3', borderRadius: 4, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   checkedBox: { backgroundColor: '#ffffff', borderColor: '#ffffff' },
   copy: { flex: 1 },
   title: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 19, letterSpacing: 0.16, color: '#f5f3ee' },

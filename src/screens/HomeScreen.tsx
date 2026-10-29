@@ -6,13 +6,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
-import { useTaskCard } from '../data/useTaskCard';
+import { gateway } from '../auth/Auth';
+import { useTaskStack } from '../data/useTaskCard';
 import type { Action, AgentIcon, Finding, ImageReference, Reply, Task } from '../data/types';
 import { bottomTabHeight, colors, fonts, layout } from '../theme';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
 import { Icon } from '../components/Icons';
 import { Content } from '../components/Content';
-import { TaskCard } from '../components/TaskCard';
+import { TaskBannerStack } from '../components/TaskBannerStack';
 import { NavigationButton, type MenuActions } from '../components/Navigation';
 import { cardImage } from '../assets';
 import { SafeImage } from '../components/SafeImage';
@@ -57,7 +58,7 @@ function TypewriterReply({ messages, progress, onAction, working, error, suggest
   onSpeakingChange: (speaking: boolean) => void;
 }) {
   const latest = messages[messages.length - 1];
-  const [displayed, setDisplayed] = useState(latest);
+  const [displayed, setDisplayed] = useState<(typeof messages)[number] | undefined>(latest);
   const pending = useRef(latest);
   const finishedAt = useRef<number | null>(null);
   const messageId = displayed?.id ?? '';
@@ -288,8 +289,8 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
     return [{ finding: item, index, icon, key, agent: agents.find(candidate => candidate.id === item.agentId) }];
   });
   const state = conversation(null);
-  const visibleTask = useTaskCard(snapshot.tasks, loading, isActive);
-  const hasTasks = visibleTask !== null;
+  const taskStack = useTaskStack(snapshot.tasks, loading, isActive, gateway.cacheIdentity??'demo');
+  const hasTasks = taskStack.items.length > 0;
   const bottomPadding = Math.max(8, insets.bottom) + 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
   const taskHeight = hasTasks ? chromeHeight : 0;
@@ -317,7 +318,8 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
     void send(null, text);
   }, [send, state.status]);
 
-  const completeWithUndo = useCallback((task: Task) => {
+  const completeWithUndo = useCallback(async (task: Task) => {
+    if(!await completeTask(task.id,task.kind))return false;
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndoTaskItem(task);
     undoProgress.setValue(0);
@@ -328,17 +330,18 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
         if (finished) setUndoTaskItem(null);
       });
     }, 3000);
-    void completeTask(task.id);
+    return true;
   }, [completeTask, undoProgress]);
 
-  const undoCompletion = useCallback(() => {
+  const undoCompletion = useCallback(async () => {
     if (!undoTaskItem) return;
+    if(!await restoreTask(undoTaskItem))return;
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = null;
     setUndoTaskItem(null);
     undoProgress.stopAnimation();
     undoProgress.setValue(0);
-    void restoreTask(undoTaskItem);
+
   }, [restoreTask, undoProgress, undoTaskItem]);
 
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
@@ -363,10 +366,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
 
   const keyboardVisible = keyboardOpen || (fullHeight > 0 && fullHeight - viewportHeight > 80);
 
-  const taskList = visibleTask ? <View style={styles.tasks}>
-    <AppText style={styles.taskLabel}>{visibleTask.kind === 'calendar' ? 'On your calendar' : 'Have you completed this'}</AppText>
-    <TaskCard key={visibleTask.id} task={visibleTask} onComplete={() => completeWithUndo(visibleTask)} />
-  </View> : null;
+  const taskList = <TaskBannerStack items={taskStack.items} expanded={taskStack.expanded} onToggle={taskStack.toggle} onComplete={completeWithUndo}/>;
 
   return <View style={styles.screen} onLayout={({ nativeEvent: { layout: viewport } }) => {
     setViewportHeight(previous => previous === viewport.height ? previous : viewport.height);
@@ -476,8 +476,6 @@ const styles = StyleSheet.create({
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 252 },
   canvasFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 28 },
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
-  tasks: { paddingTop: 8, paddingBottom: 8 },
-  taskLabel: { fontSize: 12, lineHeight: 14, letterSpacing: 0.12, color: colors.muted, marginLeft: 2, marginBottom: 8 },
   welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center' },
   welcomeIcon: { marginBottom: 24, padding: 20, borderRadius: 40, backgroundColor: '#24334f' },
   empty: { flex: 1, paddingHorizontal: 42, justifyContent: 'center', alignItems: 'center' },

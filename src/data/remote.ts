@@ -57,14 +57,14 @@ export function createRemoteSource(client: GatewayClient, uuid: () => string): D
   };
   return {
     async load() { return (await this.loadMobile!()).snapshot; },
-    async loadMobile() { assertActive(); const result = await client.request<MobileData>('/gateway/mobile' + (subscribers.size ? '?chat=0' : '')); assertActive(); return { ...result, snapshot: { ...result.snapshot, findings: result.snapshot.findings.filter(card => !card.submissionId || !cancelledSubmissions.has(card.submissionId)) }, conversations: latestConversations ?? result.conversations }; },
+    async loadMobile() { assertActive(); const result = await client.request<MobileData>('/gateway/mobile?timezone='+encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)+(subscribers.size?'&chat=0':'')); assertActive(); return { ...result, snapshot: { ...result.snapshot, findings: result.snapshot.findings.filter(card => !card.submissionId || !cancelledSubmissions.has(card.submissionId)) }, conversations: latestConversations ?? result.conversations }; },
     subscribeChat(callback) {
       subscribers.add(callback); startStream();
       return () => { subscribers.delete(callback); if (!subscribers.size) { stopStream?.(); stopStream = undefined; } };
     },
     async saveDocument(id, text) { assertActive(); await client.request('/gateway/documents/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({ text }) }); assertActive(); },
     async markCardSeen(id) { assertActive(); return client.request('/gateway/cards/' + encodeURIComponent(id) + '/seen', { method: 'POST', body: '{}' }); },
-    async completeTask(taskId) { assertActive(); const item=(await client.request<{items:{id:string;kind:string}[]}>('/gateway/agenda?timezone='+encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone))).items.find(item=>item.id===taskId); await client.request((item?.kind==='calendar'?'/gateway/calendar-reminders/':'/gateway/tasks/')+encodeURIComponent(taskId),{method:'PATCH',body:JSON.stringify({completed:true})}); },
+    async completeTask(taskId,kind='task') { assertActive(); await client.request((kind==='calendar'?'/gateway/calendar-reminders/':'/gateway/tasks/')+encodeURIComponent(taskId),{method:'PATCH',body:JSON.stringify({completed:true})}); },
     async restoreTask(task) { assertActive(); await client.request((task.kind==='calendar'?'/gateway/calendar-reminders/':'/gateway/tasks/')+encodeURIComponent(task.id),{method:'PATCH',body:JSON.stringify({completed:false})}); },
     setForeground(value) { foreground = value; if (value) startStream(); else { stopStream?.(); stopStream = undefined; } },
     dispose() {
