@@ -1,3 +1,4 @@
+import { buttonPressHaptic } from '../haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, AppState, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
@@ -229,7 +230,7 @@ function Composer({ value, setValue, onSend, onCancel, running, keyboardActive }
       multiline submitBehavior="newline" returnKeyType="default" scrollEnabled
       onContentSizeChange={({ nativeEvent: { contentSize } }) => setContentHeight(value ? Math.ceil(contentSize.height) : lineHeight)}
       style={[styles.input, { height: inputHeight }, focused && { color: '#ffffff' }]} selectionColor={colors.blue} />
-    <Pressable accessibilityRole="button" accessibilityLabel={running ? 'Stop response' : 'Send message'} accessibilityState={{ disabled: !running && !value.trim() }} disabled={!running && !value.trim()} onPress={running ? onCancel : onSend} hitSlop={4} style={({ pressed }) => [styles.send, (pressed || !running && !value.trim()) && { opacity: 0.4 }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={running ? 'Stop response' : 'Send message'} accessibilityState={{ disabled: !running && !value.trim() }} disabled={!running && !value.trim()} onPress={() => { buttonPressHaptic(); if (running) onCancel(); else onSend(); }} hitSlop={4} style={({ pressed }) => [styles.send, (pressed || !running && !value.trim()) && { opacity: 0.4 }]}>
       <Icon name={running ? 'stop' : 'send'} size={22 * 1.35 * 1.1} />
     </Pressable>
   </View>;

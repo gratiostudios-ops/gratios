@@ -1,4 +1,4 @@
-export type AssetKey = 'mail' | 'brief' | 'flight' | 'gym' | 'video' | 'avatar' | 'phone' | 'car' | 'skoda' | 'watch' | 'calendar';
+export type AssetKey = 'general-sun' | 'general-moon' | 'mail' | 'brief' | 'flight' | 'gym' | 'video' | 'avatar' | 'phone' | 'car' | 'skoda' | 'watch' | 'calendar';
 export type ImageReference = { asset: AssetKey; uri?: never } | { uri: string; asset?: never };
 export type AgentIcon = 'general' | 'flight' | 'mail' | 'gym' | 'video' | 'news' | 'brief' | 'calendar' | 'date' | 'greeting';
 export type TableText = string | { text: string; tone?: 'highlight' | 'muted' }[];

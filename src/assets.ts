@@ -2,6 +2,8 @@ import type { ImageSourcePropType } from 'react-native';
 import type { AgentIcon, AssetKey, ImageReference } from './data/types';
 
 const assets: Record<AssetKey, ImageSourcePropType> = {
+  'general-sun': require('../assets/cards/general-sun.png'),
+  'general-moon': require('../assets/cards/general-moon.png'),
   calendar: require('../assets/cards/calendar.png'),
   mail: require('../assets/cards/mail.png'),
   brief: require('../assets/daily-brief.png'),
@@ -23,6 +25,10 @@ export function imageSource(image: ImageReference | null | undefined, fallback: 
 
 /** Replace legacy generic artwork with the configured agent category's illustration. */
 export function cardImage(image: ImageReference | undefined, icon?: AgentIcon): ImageReference {
+  if (icon === 'general') {
+    const hour = new Date().getHours();
+    return { asset: hour >= 6 && hour < 18 ? 'general-sun' : 'general-moon' };
+  }
   const category: Partial<Record<AgentIcon, AssetKey>> = { mail: 'mail', flight: 'flight', gym: 'gym', video: 'video', calendar: 'calendar', date: 'calendar', brief: 'brief', news: 'brief' };
   const fallback = category[icon ?? 'flight'] ?? 'flight';
   if (!image || image.asset === 'avatar' || image.asset === 'calendar' && fallback !== 'calendar') return { asset: fallback };
