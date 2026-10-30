@@ -2,26 +2,28 @@ import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
-import { cardImage } from '../assets';
 import { SafeImage } from '../components/SafeImage';
-import { Illustration } from '../components/Illustration';
 import { AppText } from '../components/UI';
 import type { MenuActions } from '../components/Navigation';
 import { ConnectorSettings } from '../components/ConnectorSettings';
+import { AgentManager } from '../components/AgentManager';
+import type { Agent } from '../data/types';
+import { AgentChat } from './AgentChat';
 import { colors, fonts } from '../theme';
 import { MarkdownEditor } from './MarkdownEditor';
 import { AccountSettings } from './AccountSettings';
 import { ProfileEditor } from './ProfileEditor';
 
 export function ProfileScreen(_menuActions: MenuActions) {
-  const { profile, agents } = useAppData();
+  const { profile } = useAppData();
   const insets = useSafeAreaInsets();
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [allPreferences, setAllPreferences] = useState(false);
   const [profileEditor, setProfileEditor] = useState<'about' | 'preferences' | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editor, setEditor] = useState<{ id: string; title: string } | null>(null);
-  const [gridWidth, setGridWidth] = useState(0);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
 
   return <View style={styles.screen}>
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 88 + insets.bottom }]}>
@@ -42,25 +44,15 @@ export function ProfileScreen(_menuActions: MenuActions) {
           <Pressable accessibilityRole="button" onPress={() => setProfileEditor('preferences')} hitSlop={8}><AppText style={styles.editLink}>Edit</AppText></Pressable></View>
         <View style={styles.preferenceList}>{(allPreferences ? profile.preferences : profile.preferences.slice(0, 2)).map((preference, index) => <View key={index} style={styles.preferenceRow}><AppText style={styles.preferenceText}>{preference}</AppText></View>)}</View>
         {profile.preferences.length > 2 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: allPreferences }} onPress={() => setAllPreferences(value => !value)} hitSlop={8} style={styles.preferencesMore}><AppText style={styles.link}>{allPreferences ? 'show less −' : 'show all +'}</AppText></Pressable>}
-        <AppText style={[styles.label, styles.agentsLabel]}>Agent Manager</AppText>
-        <AppText style={styles.groupLabel}>Public</AppText>
-        <AppText style={styles.emptyPublic}>No public agents yet.</AppText>
-        <AppText style={styles.groupLabel}>Private</AppText>
-        <View style={styles.grid} onLayout={event => { if (event.nativeEvent.layout.width > 0) setGridWidth(event.nativeEvent.layout.width - 5); }}>
-          {agents.length === 0 && <AppText style={styles.preferenceText}>No agents have been assigned yet.</AppText>}
-          {agents.map(agent => <View key={agent.id} style={[styles.agentCard, { width: gridWidth ? (gridWidth - 11) / 2 : '48%' }]}>
-            <View style={styles.agentArt}><Illustration image={cardImage(agent.image, agent.icon)} width={agent.icon === 'flight' ? 66 : agent.icon === 'gym' ? 126 : 101} height={agent.icon === 'flight' ? 63 : agent.icon === 'gym' ? 94 : 76} /></View>
-            <View style={styles.agentNameArea}><AppText numberOfLines={2} style={styles.agentName}>{agent.name}</AppText></View>
-            <AppText numberOfLines={2} style={styles.agentDescription}>{agent.description}</AppText>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${agent.name}`} hitSlop={5} onPress={() => setEditor({ id: agent.id + ':AGENT', title: agent.name })} style={({ pressed }) => [styles.agentEdit, pressed && { opacity: 0.7 }]}><AppText style={styles.agentEditText}>Edit</AppText></Pressable>
-          </View>)}
-        </View>
+        <AgentManager onEdit={setSelectedAgent} />
         <AppText style={[styles.label, styles.connectorsLabel]}>Connectors</AppText>
         <ConnectorSettings />
         <Pressable accessibilityRole="button" onPress={() => setSettingsOpen(true)} style={styles.settingsEntry}><AppText style={styles.editLink}>Account settings</AppText></Pressable>
       </View>
     </ScrollView>
     {settingsOpen && <Modal animationType="slide" onRequestClose={() => setSettingsOpen(false)}><View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}><View style={styles.detailHeader}><AppText style={styles.detailTitle}>Account settings</AppText><Pressable accessibilityRole="button" onPress={() => setSettingsOpen(false)} style={styles.detailButton}><AppText style={styles.editLink}>Close</AppText></Pressable></View><ScrollView contentContainerStyle={{ paddingHorizontal: 27, paddingBottom: Math.max(insets.bottom, 20) }}><AccountSettings /></ScrollView></View></Modal>}
+    {selectedAgent && <Modal transparent animationType="fade" onRequestClose={() => setSelectedAgent(null)}><View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#000a', padding: 24 }}><View style={{ backgroundColor: '#202020', borderRadius: 22, padding: 24, gap: 16 }}><AppText style={styles.detailTitle}>{selectedAgent.name}</AppText><Pressable accessibilityRole="button" onPress={() => { setEditor({ id: selectedAgent.id + ':PREFERENCE', title: selectedAgent.name + ' preferences' }); setSelectedAgent(null); }}><AppText style={styles.editLink}>Edit private preferences</AppText></Pressable><Pressable accessibilityRole="button" onPress={() => { setEditor({ id: selectedAgent.id + ':AGENT', title: selectedAgent.name + ' purpose' }); setSelectedAgent(null); }}><AppText style={styles.editLink}>Edit purpose</AppText></Pressable><Pressable accessibilityRole="button" onPress={() => { setChatAgent(selectedAgent); setSelectedAgent(null); }}><AppText style={styles.editLink}>Chat</AppText></Pressable><Pressable accessibilityRole="button" onPress={() => setSelectedAgent(null)}><AppText style={styles.editLink}>Close</AppText></Pressable></View></View></Modal>}
+    {chatAgent && <AgentChat agent={chatAgent} onClose={() => setChatAgent(null)} />}
     {profileEditor && <ProfileEditor preferencesOnly={profileEditor === 'preferences'} onClose={() => setProfileEditor(null)} />}
     {editor && <MarkdownEditor key={editor.id} documentId={editor.id} title={editor.title} onClose={() => setEditor(null)} />}
   </View>;

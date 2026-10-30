@@ -1,7 +1,9 @@
+import { agentStickers } from './agent-icons';
 import type { ImageSourcePropType } from 'react-native';
 import type { AgentIcon, AssetKey, ImageReference } from './data/types';
 
 const assets: Record<AssetKey, ImageSourcePropType> = {
+  ...Object.fromEntries(Object.entries(agentStickers).map(([key, value]) => [key, value.source])) as Record<keyof typeof agentStickers, ImageSourcePropType>,
   'general-sun': require('../assets/cards/general-sun.png'),
   'general-moon': require('../assets/cards/general-moon.png'),
   calendar: require('../assets/cards/calendar.png'),
