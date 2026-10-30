@@ -15,7 +15,7 @@ import { ActionChip, AppText, TypingIndicator } from '../components/UI';
 import { Icon } from '../components/Icons';
 import { Content } from '../components/Content';
 import { TaskBannerStack } from '../components/TaskBannerStack';
-import { NavigationButton, type MenuActions } from '../components/Navigation';
+import { type MenuActions } from '../components/Navigation';
 import { cardImage } from '../assets';
 import { SafeImage } from '../components/SafeImage';
 import { RichText } from '../components/RichText';
@@ -294,7 +294,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
   const state = conversation(null);
   const taskStack = useTaskStack(snapshot.tasks, loading, isActive, gateway.cacheIdentity??'demo');
   const hasTasks = taskStack.items.length > 0;
-  const bottomPadding = Math.max(8, insets.bottom) + 8;
+  const bottomPadding = 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
   const chromeAvailableHeight = Math.max(48, canvasHeroHeight(canvasSize.height, insets.top) - insets.top - 8);
 
@@ -437,7 +437,7 @@ What’s on your mind?</AppText>
       <BlurView pointerEvents="none" blurTarget={blurTarget} blurMethod="dimezisBlurViewSdk31Plus" tint="dark" intensity={20} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.keyboardShade} />
     </Pressable>}
-    <View style={[styles.composerDock, { bottom: (keyboardVisible ? layout.keyboardGap : bottomPadding) + 3 }]}>
+    <View style={[styles.composerDock, { bottom: 8 }]}>
       <View style={[styles.conversationBody, { height: 74 + reclaimedHeight }]}>
         <TypewriterReply
           messages={responseMessages(state)}
@@ -447,7 +447,6 @@ What’s on your mind?</AppText>
           />
       </View>
       <View style={styles.composerRow}>
-        <NavigationButton {...menuActions} keyboardActive={keyboardVisible} />
         <Composer value={draft} setValue={setDraft} onSend={() => sendText(draft)} onCancel={() => { setSpeaking(false); void cancel(); }} running={state.status === 'thinking' || speaking || state.stopFailed === true} keyboardActive={keyboardVisible} />
       </View>
     </View>
