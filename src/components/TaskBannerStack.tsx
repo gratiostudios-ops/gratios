@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React,{useEffect,useRef,useState} from 'react';
-import {Animated,Easing,Pressable,StyleSheet,View} from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg,{Circle,Path} from 'react-native-svg';
 import type {Task} from '../data/types';
 import {colors} from '../theme';

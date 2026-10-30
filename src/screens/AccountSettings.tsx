@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable, HapticSwitch as Switch } from '../components/HapticControls';
 import React, { useEffect, useState } from 'react';
-import { AppState, Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { AppState, Modal, StyleSheet, View } from 'react-native';
 import { gateway, useAuth } from '../auth/Auth';
 import { useAppData } from '../data/AppData';
 import { AppText } from '../components/UI';

@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Image, PanResponder, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Image, PanResponder, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Rect } from 'react-native-svg';
@@ -72,7 +73,7 @@ export function MarketplaceDeck({ items, onOpen, onAdd, installed }: { items: Ma
         accessibilityRole="adjustable" accessibilityLabel={'Featured agent ' + (index + offset + 1) + ' of ' + items.length + ': ' + item.name}
         accessibilityActions={offset === 0 ? [{ name: 'increment', label: 'Next agent' }] : []} onAccessibilityAction={() => { if (offset === 0) fly(width, 0, 1); }}
         style={[styles.front, { opacity: offset < 2 ? 1 : offset === 2 ? promotion : 0, zIndex: visible.length - offset, elevation: offset === 0 ? 12 : 0, transform: offset === 0 ? [{ translateX: position.x }, { translateY: position.y }, { rotate: position.x.interpolate({ inputRange: [-width, 0, width], outputRange: ['-12deg', '0deg', '12deg'], extrapolate: 'clamp' }) }] : [{ translateX: promotion.interpolate({ inputRange: [0, 1], outputRange: [Math.min(offset, 3) * 14, Math.min(offset - 1, 3) * 14] }) }, { rotate: promotion.interpolate({ inputRange: [0, 1], outputRange: [offset % 2 ? '9deg' : '7deg', offset === 1 ? '0deg' : (offset - 1) % 2 ? '9deg' : '7deg'] }) }, { scale: promotion.interpolate({ inputRange: [0, 1], outputRange: [1 - Math.min(offset, 3) * 0.02, 1 - Math.min(offset - 1, 3) * 0.02] }) }, { translateY: promotion.interpolate({ inputRange: [0, 1], outputRange: [-Math.min(offset, 3) * 4, -Math.min(offset - 1, 3) * 4] }) }] }]}>
-        <GlassCardSurface item={item}><Pressable accessibilityRole="button" onPress={() => onOpen(item)} style={{ flex: 1, gap: 4 }}><AppText numberOfLines={1} style={styles.cardTitle}>{item.name}</AppText><AppText numberOfLines={2} style={styles.description}>{item.description}</AppText></Pressable>
+        <GlassCardSurface item={item}><Pressable accessibilityRole="button" onPress={() => onOpen(item)} style={{ flex: 1, minWidth: 0, gap: 4 }}><AppText numberOfLines={2} style={styles.cardTitle}>{item.name}</AppText><AppText numberOfLines={2} style={styles.description}>{item.description}</AppText></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={(installed.has(item.id) ? 'Manage ' : 'Add ') + item.name} onPress={() => (onAdd ?? onOpen)(item)} style={styles.add}><AppText style={styles.addText}>{installed.has(item.id) ? 'Added' : 'Add'}</AppText></Pressable>
         </GlassCardSurface>
       </Animated.View>)}
@@ -81,7 +82,7 @@ export function MarketplaceDeck({ items, onOpen, onAdd, installed }: { items: Ma
   </View>;
 }
 // Figma reference: light -45° / 80%, refraction 80, depth 20,
-// dispersion 50, splay 0; updated with stronger frosting and an 80% white fill. Optical properties are approximated
+// dispersion 50, splay 0; updated with stronger frosting and a 65% cool grey fill. Optical properties are approximated
 // with background blur, diagonal reflection, and a subtly chromatic rim.
 function GlassCardSurface({ item, children }: { item: MarketListing; children: React.ReactNode }) {
   const target = useRef<React.ComponentRef<typeof View>>(null);
@@ -90,9 +91,9 @@ function GlassCardSurface({ item, children }: { item: MarketListing; children: R
       <Image pointerEvents="none" source={marketplaceCover(item.id, item.artwork)} resizeMode="cover" fadeDuration={0} style={styles.coverImage} />
     </BlurTargetView>
     <View style={styles.caption}>
-      <BlurView pointerEvents="none" blurTarget={target} blurMethod="dimezisBlurViewSdk31Plus" intensity={30} tint="default" style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255, 255, 255, 0.8)' }]} />
-      <LinearGradient pointerEvents="none" colors={['#ffffff12', '#ffffff04', '#ffffff00', '#ffffff08']} locations={[0, 0.28, 0.7, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <BlurView pointerEvents="none" blurTarget={target} blurMethod="dimezisBlurViewSdk31Plus" intensity={30} tint="default" style={styles.glassLayer} />
+      <View pointerEvents="none" style={[styles.glassLayer, { backgroundColor: 'rgba(205, 209, 214, 0.65)' }]} />
+      <LinearGradient pointerEvents="none" colors={['#ffffff12', '#ffffff04', '#ffffff00', '#ffffff08']} locations={[0, 0.28, 0.7, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.glassLayer} />
       <View pointerEvents="none" style={styles.glassRim} />
       {children}
     </View>
@@ -100,8 +101,9 @@ function GlassCardSurface({ item, children }: { item: MarketListing; children: R
 }
 const styles = StyleSheet.create({
   caughtUp: { backgroundColor: '#111111' },
+  glassLayer: { ...StyleSheet.absoluteFill, borderRadius: 21 },
   cardArtwork: { ...StyleSheet.absoluteFill, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden' },
   coverImage: { width: '100%', height: '100%', transform: [{ scale: 1.05 }] },
   glassRim: { ...StyleSheet.absoluteFill, borderRadius: 20, borderTopWidth: 1, borderLeftWidth: 1, borderBottomWidth: 1, borderRightWidth: 1, borderTopColor: '#ffffff30', borderLeftColor: '#ffffff20', borderBottomColor: '#ffffff10', borderRightColor: '#ffffff10' },
-  front: { ...StyleSheet.absoluteFill, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: '#ff9b32', shadowColor: '#ffb75d', shadowOpacity: 0.35, shadowRadius: 24, elevation: 12 }, backCard: { ...StyleSheet.absoluteFill, top: -6, bottom: 6, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden' }, glow: { width: 230, height: 230, borderRadius: 115, backgroundColor: '#ffdd9a30', position: 'absolute', top: -40, left: -35 }, featureArt: { flex: 1, alignItems: 'center', justifyContent: 'center' }, caption: { flexDirection: 'row', gap: 12, alignItems: 'center', position: 'absolute', bottom: 19, left: 16, right: 16, minHeight: 74, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 21, borderWidth: 1, borderColor: '#ffffff26', backgroundColor: 'transparent', overflow: 'hidden' }, cardTitle: { fontFamily: fonts.bold, fontSize: 15, color: '#080808' }, description: { color: '#111111', fontFamily: fonts.medium, fontSize: 12, lineHeight: 14 }, add: { backgroundColor: '#2468f5', borderRadius: 22, minWidth: 58, minHeight: 28, alignItems: 'center', justifyContent: 'center' }, addText: { color: '#fff', fontFamily: fonts.semibold, fontSize: 14 }, controls: { flexDirection: 'row', width: '100%', alignItems: 'center', paddingHorizontal: 10, paddingTop: 15 }, hint: { color: '#666', fontSize: 11, flex: 1 }, dots: { flexDirection: 'row', gap: 5, alignItems: 'center' }, dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#454545' }, next: { flex: 1, alignItems: 'flex-end', minHeight: 44, justifyContent: 'center' }, nextText: { color: '#aaa', fontSize: 12 }, empty: { minHeight: 170, borderRadius: 44, borderCurve: 'continuous', backgroundColor: '#191919', padding: 28, justifyContent: 'center', alignSelf: 'center', marginVertical: 22, gap: 8, borderWidth: 1, borderColor: '#292929' }, emptyTitle: { color: '#ddd', fontFamily: fonts.semibold, fontSize: 19 }, emptyText: { color: '#777', fontSize: 14, lineHeight: 21 },
+  front: { ...StyleSheet.absoluteFill, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: '#ff9b32', shadowColor: '#ffb75d', shadowOpacity: 0.35, shadowRadius: 24, elevation: 12 }, backCard: { ...StyleSheet.absoluteFill, top: -6, bottom: 6, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden' }, glow: { width: 230, height: 230, borderRadius: 115, backgroundColor: '#ffdd9a30', position: 'absolute', top: -40, left: -35 }, featureArt: { flex: 1, alignItems: 'center', justifyContent: 'center' }, caption: { flexDirection: 'row', gap: 12, alignItems: 'center', position: 'absolute', bottom: 19, left: 16, right: 16, minHeight: 80, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 21, borderWidth: 1, borderColor: '#ffffff26', backgroundColor: 'transparent', overflow: 'hidden' }, cardTitle: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 20, color: '#080808' }, description: { color: '#111111', fontFamily: fonts.medium, fontSize: 12, lineHeight: 16 }, add: { backgroundColor: '#2468f5', borderRadius: 22, minWidth: 58, minHeight: 32, flexShrink: 0, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }, addText: { color: '#fff', fontFamily: fonts.semibold, fontSize: 14 }, controls: { flexDirection: 'row', width: '100%', alignItems: 'center', paddingHorizontal: 10, paddingTop: 15 }, hint: { color: '#666', fontSize: 11, flex: 1 }, dots: { flexDirection: 'row', gap: 5, alignItems: 'center' }, dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#454545' }, next: { flex: 1, alignItems: 'flex-end', minHeight: 44, justifyContent: 'center' }, nextText: { color: '#aaa', fontSize: 12 }, empty: { minHeight: 170, borderRadius: 44, borderCurve: 'continuous', backgroundColor: '#191919', padding: 28, justifyContent: 'center', alignSelf: 'center', marginVertical: 22, gap: 8, borderWidth: 1, borderColor: '#292929' }, emptyTitle: { color: '#ddd', fontFamily: fonts.semibold, fontSize: 19 }, emptyText: { color: '#777', fontSize: 14, lineHeight: 21 },
 });

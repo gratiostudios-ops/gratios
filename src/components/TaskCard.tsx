@@ -1,8 +1,8 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { Task } from '../data/types';
-import { buttonPressHaptic } from '../haptics';
 import { colors, fonts } from '../theme';
 import { AppText } from './UI';
 
@@ -58,7 +58,7 @@ export function TaskCard({ task, onComplete, error }: { task: Task; onComplete: 
       accessibilityState={{ checked, disabled: checked }} disabled={checked} onPress={complete}
       onPressIn={() => {
         if (checked) return;
-        buttonPressHaptic();
+
         Animated.spring(pressScale, { toValue: 0.982, speed: 40, bounciness: 0, useNativeDriver: Platform.OS !== 'web' }).start();
       }}
       onPressOut={() => Animated.spring(pressScale, { toValue: 1, speed: 35, bounciness: 4, useNativeDriver: Platform.OS !== 'web' }).start()}

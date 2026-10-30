@@ -1,8 +1,8 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, Keyboard, Modal, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buttonPressHaptic, navigationHaptic } from '../haptics';
 import { colors, fonts, layout } from '../theme';
 import { Icon } from './Icons';
 import NavHome from '../../assets/phosphor/nav-home.svg';
@@ -21,7 +21,7 @@ export function NavigationButton({ onOpenMenu, keyboardActive = false }: MenuAct
   const scale = useRef(new Animated.Value(1)).current;
   return <Pressable accessibilityRole="button" accessibilityLabel="Open navigation menu" onPress={onOpenMenu}
     onPressIn={() => {
-      buttonPressHaptic();
+
       Animated.spring(scale, { toValue: 0.982, speed: 40, bounciness: 0, useNativeDriver: Platform.OS !== 'web' }).start();
     }}
     onPressOut={() => Animated.spring(scale, { toValue: 1, speed: 35, bounciness: 4, useNativeDriver: Platform.OS !== 'web' }).start()}
@@ -82,12 +82,12 @@ export function NavigationSheet({ visible, active, onClose, onSelect, onContact 
         </View>
         <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.destinations}>{destinations.map(destination => <Pressable key={destination.id} accessibilityRole="button" accessibilityState={{ selected: active === destination.id }}
-            onPressIn={buttonPressHaptic} onPress={() => close(() => onSelect(destination.id))}
+             onPress={() => close(() => onSelect(destination.id))}
             style={({ pressed }) => [styles.destination, active === destination.id && styles.selected, pressed && { opacity: 0.75 }]}>
             <View style={styles.destinationIcon}><Icon name={destination.id} color={active === destination.id ? '#ffffff' : '#a6a6a6'} /></View>
             <AppText style={[styles.destinationLabel, active === destination.id && { color: '#ffffff' }]}>{destination.label}</AppText>
           </Pressable>)}</View>
-          <Pressable accessibilityRole="button" onPressIn={buttonPressHaptic} onPress={() => close(onContact)} style={({ pressed }) => [styles.contact, pressed && { opacity: 0.65 }]}><AppText style={styles.contactText}>Contact us</AppText></Pressable>
+          <Pressable accessibilityRole="button"  onPress={() => close(onContact)} style={({ pressed }) => [styles.contact, pressed && { opacity: 0.65 }]}><AppText style={styles.contactText}>Contact us</AppText></Pressable>
         </ScrollView>
       </Animated.View>
     </View>
@@ -127,11 +127,11 @@ export function BottomNavigation({ active, onSelect }: { active: Destination; on
       const selected = active === destination.id;
       const iconSize = selected ? 31 : 26;
       return <Pressable key={destination.id} accessibilityRole="tab" accessibilityLabel={destination.label} accessibilityState={{ selected }}
-        onPress={() => { if (!selected) navigationHaptic(); onSelect(destination.id); }}
+        onPress={() => {  onSelect(destination.id); }}
         style={{ flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' }}>
         <View collapsable={false} style={[styles.tabPill, selected && { width: 74 }]}>
           {selected && <View pointerEvents="none" style={styles.tabSelection} />}
-          <NavIcon width={iconSize} height={iconSize} color={selected ? '#fff' : '#888'} />
+          <View style={{ zIndex: 1 }}><NavIcon width={iconSize} height={iconSize} color={selected ? '#fff' : '#888'} /></View>
         </View>
       </Pressable>;
     })}

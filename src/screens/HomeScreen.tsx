@@ -1,7 +1,7 @@
-import { buttonPressHaptic } from '../haptics';
+import { HapticPressable as Pressable } from '../components/HapticControls';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, FlatList, Keyboard, Platform, ScrollView, StyleSheet, TextInput, View, type FlatListProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ import { useTaskStack } from '../data/useTaskCard';
 import type { Action, AgentIcon, Finding, ImageReference, Reply, Task } from '../data/types';
 import { bottomTabHeight, colors, fonts, layout } from '../theme';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
+import { ContactLink } from '../components/ContactLink';
 import { Icon } from '../components/Icons';
 import { Content } from '../components/Content';
 import { TaskBannerStack } from '../components/TaskBannerStack';
@@ -202,15 +203,16 @@ function Figure({ image, heroHeight, hasTasks }: { image: ImageReference; heroHe
   </View>;
 }
 
-function CanvasPage({ finding, width, height, hasTasks, onAction, scrollPositions }: {
+function CanvasPage({ finding, width, height, hasTasks, onAction, onContact, scrollPositions }: {
   finding: Finding; width: number; height: number; hasTasks: boolean;
-  onAction: (message: string) => void; scrollPositions: Map<string, number>;
+  onAction: (message: string) => void; onContact(): void; scrollPositions: Map<string, number>;
 }) {
   const insets = useSafeAreaInsets();
   const heroHeight = canvasHeroHeight(height, insets.top);
   return <ScrollView style={{ width, height }} contentContainerStyle={styles.canvasContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" accessibilityLabel={finding.title}
     contentOffset={{ x: 0, y: scrollPositions.get(finding.id) ?? 0 }} scrollEventThrottle={32}
     onScroll={({ nativeEvent }) => scrollPositions.set(finding.id, nativeEvent.contentOffset.y)}>
+    <View style={{ position: 'absolute', right: layout.gutter, top: insets.top + 8, zIndex: 1 }}><ContactLink onPress={onContact} /></View>
     <Figure image={finding.image} heroHeight={heroHeight} hasTasks={hasTasks} />
     <AppText accessibilityRole="header" style={styles.canvasTitle}>{finding.title}</AppText>
     <View style={{ marginTop: finding.blocks[0]?.type === 'table' ? 24 : 32 }}>
@@ -235,13 +237,13 @@ function Composer({ value, setValue, onSend, onCancel, running, keyboardActive }
       multiline submitBehavior="newline" returnKeyType="default" scrollEnabled
       onContentSizeChange={({ nativeEvent: { contentSize } }) => setContentHeight(value ? Math.ceil(contentSize.height) : lineHeight)}
       style={[styles.input, { height: inputHeight }, focused && { color: '#ffffff' }]} selectionColor={colors.blue} />
-    <Pressable accessibilityRole="button" accessibilityLabel={running ? 'Stop response' : 'Send message'} accessibilityState={{ disabled: !running && !value.trim() }} disabled={!running && !value.trim()} onPress={() => { buttonPressHaptic(); if (running) onCancel(); else onSend(); }} hitSlop={4} style={({ pressed }) => [styles.send, (pressed || !running && !value.trim()) && { opacity: 0.4 }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={running ? 'Stop response' : 'Send message'} accessibilityState={{ disabled: !running && !value.trim() }} disabled={!running && !value.trim()} onPress={() => {  if (running) onCancel(); else onSend(); }} hitSlop={4} style={({ pressed }) => [styles.send, (pressed || !running && !value.trim()) && { opacity: 0.4 }]}>
       <Icon name={running ? 'stop' : 'send'} size={22 * 1.35 * 1.1} />
     </Pressable>
   </View>;
 }
 
-export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void }) {
+export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void; onContact(): void }) {
   const { snapshot, loading, agents, completeTask, restoreTask, actionErrors, conversation, send, cancel, markCardSeen } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -298,6 +300,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
   const hasTasks = taskStack.items.length > 0;
   const bottomPadding = 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
+  const responseHeight = Math.max(74, 74 + reclaimedHeight - 24);
   const chromeAvailableHeight = Math.max(48, canvasHeroHeight(canvasSize.height, insets.top) - insets.top - 8);
 
   useEffect(() => {
@@ -401,20 +404,21 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
           }}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60, minimumViewTime: 0 }} keyboardShouldPersistTaps="handled"
           getItemLayout={(_, index) => ({ length: canvasSize.width, offset: index * canvasSize.width, index })}
-          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
-        /> : <View style={styles.empty}>
+          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} onContact={onContact} />}
+        /> : <ScrollView contentContainerStyle={[styles.empty, { flexGrow: 1 }]} showsVerticalScrollIndicator={false}>
+          <View style={{ position: 'absolute', top: insets.top + 8, right: layout.gutter }}><ContactLink onPress={onContact} /></View>
           <View style={styles.welcomeCard} accessibilityLabel="Welcome card">
             <View style={styles.welcomeIcon}><Icon name="greeting" color="#b8cfff" /></View>
             <AppText accessibilityRole="header" style={styles.emptyTitle}>Hey, glad you’re here.</AppText>
             <AppText style={styles.emptyBody}>A little space for your day.
 What’s on your mind?</AppText>
           </View>
-        </View>}
+        </ScrollView>}
         <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} style={styles.canvasFade} />
-        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { height: insets.top + 8 + 14 + 8 + 45 / 2 }]} />}
-        {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
+        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: insets.top + 40, height: 8 + 14 + 8 + 45 / 2 }]} />}
+        {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top + 40, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
           onLayout={({ nativeEvent: { layout: chrome } }) => setChromeHeight(previous => previous === chrome.height ? previous : chrome.height)}>
-          <ScrollView style={{ maxHeight: chromeAvailableHeight, flexGrow: 0 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ maxHeight: Math.max(48, chromeAvailableHeight - 40), flexGrow: 0 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {taskList}
           </ScrollView>
         </View>}
@@ -437,7 +441,7 @@ What’s on your mind?</AppText>
       </View>
     </View>
 
-    <View style={{ height: layout.conversationHeight + reclaimedHeight }} />
+    <View style={{ height: layout.conversationHeight + reclaimedHeight - 24 }} />
     </View>
     </BlurTargetView>
     {keyboardVisible && <Pressable accessibilityRole="button" accessibilityLabel="Dismiss keyboard"
@@ -446,7 +450,7 @@ What’s on your mind?</AppText>
       <View pointerEvents="none" style={styles.keyboardShade} />
     </Pressable>}
     <View style={[styles.composerDock, { bottom: 8 }]}>
-      <View style={[styles.conversationBody, { height: 74 + reclaimedHeight }]}>
+      <View style={[styles.conversationBody, { height: responseHeight }]}>
         <TypewriterReply
           messages={responseMessages(state)}
           progress={replyProgress} onAction={sendText} working={state.status === 'thinking'}
@@ -494,7 +498,7 @@ const styles = StyleSheet.create({
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
   welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center' },
   welcomeIcon: { marginBottom: 24, padding: 20, borderRadius: 40, backgroundColor: '#24334f' },
-  empty: { flex: 1, paddingHorizontal: 42, justifyContent: 'center', alignItems: 'center' },
+  empty: { paddingHorizontal: 42, justifyContent: 'center', alignItems: 'center' },
   emptyTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29, textAlign: 'center' },
   emptyBody: { fontSize: 14, lineHeight: 21, textAlign: 'center', color: colors.muted, marginTop: 12 },
   findingNavigation: { height: layout.findingNavigationHeight, alignItems: 'center', justifyContent: 'center' },
@@ -503,12 +507,12 @@ const styles = StyleSheet.create({
   pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text },
   conversationBody: { height: 74, marginBottom: 10, overflow: 'visible', justifyContent: 'center' },
   suggestions: { flex: 1, justifyContent: 'center', overflow: 'hidden' },
-  suggestionChips: { gap: 8, maxHeight: 90, overflow: 'hidden', flexShrink: 0, alignItems: 'flex-start' },
+  suggestionChips: { gap: 8, flexShrink: 0, alignItems: 'flex-start' },
   replyRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   assistantSlot: { position: 'absolute', left: 0, top: '50%', transform: [{ translateY: -29 }], width: 58, height: 58, alignItems: 'center', justifyContent: 'center' },
   loadingSlot: { position: 'absolute', left: 5, bottom: 0, height: 40, justifyContent: 'center' },
   replyScroll: { flex: 1, alignSelf: 'stretch', minWidth: 0, marginLeft: 73 },
-  reply: { flexGrow: 1, justifyContent: 'center', gap: 8 },
+  reply: { flexGrow: 1, justifyContent: 'center', gap: 8, paddingVertical: 6 },
   replyBubble: { borderRadius: 16, paddingHorizontal: 4, paddingVertical: 4, gap: 8 },
   replyText: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: colors.body },
   replyHighlight: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: '#ffffff' },

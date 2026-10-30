@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Image, Linking, StyleSheet, View } from 'react-native';
 import { gateway } from '../auth/Auth';
 import { useAppData } from '../data/AppData';
 import { AppText } from './UI';
@@ -56,10 +57,10 @@ export function ConnectorSettings() {
   </View>;
 }
 const styles = StyleSheet.create({
-  switchTrack: { width: 51, height: 31, borderRadius: 16, padding: 2, backgroundColor: '#39393d' },
+  switchTrack: { width: 51, height: 31, flexShrink: 0, borderRadius: 16, padding: 2, backgroundColor: '#39393d' },
   switchOn: { backgroundColor: '#34c759' },
   switchThumb: { width: 27, height: 27, borderRadius: 14, backgroundColor: '#ffffff', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 2, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 20, marginLeft: 28, marginRight: 12 },
-  divider: { borderBottomWidth: 1, borderBottomColor: '#393939' }, icon: { width: 30, height: 30 }, label: { flex: 1 },
-  name: { color: '#bcbcbc', fontSize: 14 }, link: { color: '#2468f5', fontSize: 12, paddingVertical: 8 }, feedback: { marginTop: 12, paddingHorizontal: 28 },
+  row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  divider: { borderBottomWidth: 1, borderBottomColor: '#393939' }, icon: { width: 30, height: 30 }, label: { flex: 1, minWidth: 0 },
+  name: { color: '#bcbcbc', fontSize: 14 }, link: { color: '#2468f5', fontSize: 12, paddingVertical: 8 }, feedback: { marginTop: 12 },
 });

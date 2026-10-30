@@ -1,11 +1,11 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { agentStickers } from '../agent-icons';
 import { marketplaceArtworkOptions, type MarketplaceArtworkKey } from '../data/marketplace';
-import { carouselTheme } from '../data/carousel-theme';
-import { carouselArt } from '../carousel-art';
+import { marketplaceCover } from '../marketplace-covers';
+import { PhosphorIcon } from './PhosphorIcon';
 import { imageSource } from '../assets';
 import type { ImageReference } from '../data/types';
 import { AppText } from './UI';
@@ -22,7 +22,7 @@ export function MarketButton({ label, onPress, disabled, secondary, busy }: { la
 }
 export function MarketError({ text }: { text?: string }) { return text ? <AppText accessibilityLiveRegion="polite" style={ui.error}>{text}</AppText> : null; }
 export function MarketField({ label, value, onChange, multiline = false, maxLength = 16000 }: { label: string; value: string; onChange(value: string): void; multiline?: boolean; maxLength?: number }) {
-  return <View style={{ gap: 8 }}><AppText style={ui.label}>{label}</AppText><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} maxLength={maxLength} placeholderTextColor="#666" selectionColor="#2468f5" textAlignVertical={multiline ? 'top' : 'center'} style={[ui.input, multiline && { minHeight: 115 }]} /></View>;
+  return <View style={{ gap: 8 }}><AppText style={ui.label}>{label}</AppText><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} maxLength={maxLength} placeholderTextColor="#666" selectionColor="#2468f5" textAlignVertical={multiline ? 'top' : 'center'} style={[ui.input, multiline && { minHeight: 104 }]} /></View>;
 }
 export function MarketModal({ title, onClose, children, busy = false, popup = false, compact = false }: { title: string; onClose(): void; children: React.ReactNode; busy?: boolean; popup?: boolean; compact?: boolean }) {
   const insets = useSafeAreaInsets();
@@ -33,7 +33,7 @@ export function MarketModal({ title, onClose, children, busy = false, popup = fa
         <View style={ui.popupToolbar}>
           <AppText accessibilityRole="header" style={ui.modalTitle}>{title}</AppText>
           <Pressable accessibilityRole="button" accessibilityLabel="Close agent details" disabled={busy} onPress={onClose} style={ui.popupClose}>
-            <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M6 6L18 18M18 6L6 18" stroke="#fff" strokeWidth={2} strokeLinecap="round" /></Svg>
+            <PhosphorIcon name="close" size={18} color="#fff" />
           </Pressable>
         </View>
         <ScrollView style={{ flexGrow: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={ui.popupContent}>{children}</ScrollView>
@@ -42,7 +42,7 @@ export function MarketModal({ title, onClose, children, busy = false, popup = fa
   </Modal>;
   return <Modal animationType="slide" onRequestClose={() => { if (!busy) onClose(); }}>
     <KeyboardAvoidingView style={[ui.modal, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={ui.toolbar}><AppText accessibilityRole="header" style={ui.modalTitle}>{title}</AppText><Pressable accessibilityRole="button" accessibilityLabel="Close" disabled={busy} onPress={onClose} style={ui.close}><AppText style={ui.link}>Close</AppText></Pressable></View>
+      <View style={ui.toolbar}><AppText accessibilityRole="header" style={ui.modalTitle}>{title}</AppText><Pressable accessibilityRole="button" accessibilityLabel="Close" disabled={busy} onPress={onClose} style={ui.popupClose}><PhosphorIcon name="close" size={18} color="#dedede" /></Pressable></View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[ui.modalContent, compact && { padding: 20, paddingBottom: 32, gap: 12 }]}>{children}</ScrollView>
     </KeyboardAvoidingView>
   </Modal>;
@@ -51,40 +51,54 @@ export function MarketDisclosure({ title, summary, children, defaultOpen = false
   const [open, setOpen] = useState(defaultOpen);
   return <View style={ui.disclosure}>
     <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)} style={ui.disclosureHeader}>
-      <View style={{ flex: 1, gap: 3 }}><AppText style={ui.disclosureTitle}>{title}</AppText>{!open && !!summary && <AppText numberOfLines={1} style={ui.disclosureSummary}>{summary}</AppText>}</View>
-      <AppText style={ui.disclosureChevron}>{open ? '⌃' : '⌄'}</AppText>
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}><AppText style={ui.disclosureTitle}>{title}</AppText>{!open && !!summary && <AppText numberOfLines={1} style={ui.disclosureSummary}>{summary}</AppText>}</View>
+      <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}><PhosphorIcon name="caret-down" size={18} /></View>
     </Pressable>
     {open && <View style={ui.disclosureContent}>{children}</View>}
   </View>;
 }
 export function Consent({ checked, onChange, label }: { checked: boolean; onChange(value: boolean): void; label: string }) {
-  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={() => onChange(!checked)} style={ui.consent}><View style={[ui.checkbox, checked && { backgroundColor: '#2468f5', borderColor: '#2468f5' }]}><AppText style={{ fontSize: 13 }}>{checked ? '✓' : ''}</AppText></View><AppText style={[ui.body, { flex: 1 }]}>{label}</AppText></Pressable>;
+  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={() => onChange(!checked)} style={ui.consent}><View style={[ui.checkbox, checked && { backgroundColor: '#2468f5', borderColor: '#2468f5' }]}>{checked && <PhosphorIcon name="check" size={14} color="#fff" />}</View><AppText style={[ui.body, { flex: 1 }]}>{label}</AppText></Pressable>;
 }
 /** Selection belongs exclusively to the publishing flow; viewers see saved artwork. */
 export function PublishingArtworkPicker({ selected, onSelect }: { selected?: string; onSelect(key: MarketplaceArtworkKey): void }) {
-  return <View style={{ gap: 12 }}><AppText style={ui.label}>Choose your listing artwork</AppText><AppText style={ui.body}>This choice appears on your listing and featured card.</AppText><View style={ui.stickers}>{marketplaceArtworkOptions.map(option => {
-    const theme = carouselTheme({ artwork: { asset: option.asset } });
-    return <Pressable key={option.asset} accessibilityRole="button" accessibilityLabel={option.label + ' artwork'} accessibilityState={{ selected: option.asset === selected }} onPress={() => onSelect(option.asset)} style={[ui.artworkChoice, option.asset === selected && { borderColor: '#2468f5', backgroundColor: '#172644' }]}>
-      {theme ? <Image source={carouselArt[theme]} style={{ width: '100%', aspectRatio: 1, borderRadius: 10 }} resizeMode="cover" /> : <View style={{ width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#54341e' }}><Image source={agentStickers[option.sticker].source} style={{ width: '85%', height: '85%' }} resizeMode="contain" /></View>}
-      <AppText style={{ color: option.asset === selected ? '#91b4ff' : '#aaa', fontSize: 12, paddingVertical: 6 }}>{option.label}{option.asset === selected ? ' ✓' : ''}</AppText>
-    </Pressable>;
-  })}</View></View>;
+  return <View style={{ gap: 8 }}>
+    <AppText style={ui.disclosureSummary}>Choose one cover for your listing and carousel card.</AppText>
+    <View accessibilityRole="radiogroup" style={ui.artworkGrid}>
+      {marketplaceArtworkOptions.map(option => {
+        const chosen = selected === option.asset;
+        return <View key={option.asset} style={ui.artworkCell}>
+          <Pressable accessibilityRole="radio" accessibilityLabel={option.label + ' cover'} accessibilityState={{ checked: chosen }} onPress={() => onSelect(option.asset)} style={({ pressed }) => [ui.artworkChoice, chosen && ui.artworkSelected, pressed && { opacity: 0.8 }]}>
+            <Image source={marketplaceCover('', { asset: option.asset })} style={ui.artworkPreview} resizeMode="cover" />
+            {chosen && <View style={ui.artworkCheck}><PhosphorIcon name="check" size={12} color="#fff" /></View>}
+            <AppText numberOfLines={2} style={[ui.artworkLabel, chosen && { color: '#91b4ff' }]}>{option.label}</AppText>
+          </Pressable>
+        </View>;
+      })}
+    </View>
+  </View>;
 }
+
 export const ui = StyleSheet.create({
   disclosure: { backgroundColor: '#1b1b1b', borderRadius: 16, overflow: 'hidden' },
-  disclosureHeader: { minHeight: 48, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  disclosureHeader: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   disclosureTitle: { fontFamily: fonts.semibold, fontSize: 14, color: '#dedede' },
   disclosureSummary: { fontSize: 12, lineHeight: 16, color: '#858585' },
-  disclosureChevron: { color: '#929292', fontSize: 20 },
-  disclosureContent: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
+  disclosureContent: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   popupOverlay: { flex: 1, backgroundColor: '#00000099', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
   popupCard: { width: '100%', maxWidth: 420, maxHeight: '85%', backgroundColor: '#1b1b1b', borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: '#ffffff14' },
-  popupToolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 24, paddingRight: 16, paddingTop: 16, paddingBottom: 12 },
-  popupClose: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#333333', alignItems: 'center', justifyContent: 'center' },
+  popupToolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  popupClose: { width: 44, height: 44, flexShrink: 0, borderRadius: 22, backgroundColor: '#333333', alignItems: 'center', justifyContent: 'center' },
   popupBody: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 14, lineHeight: 21 },
-  popupContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 28, gap: 20 },
-  modal: { flex: 1, backgroundColor: '#0d0d0d' }, toolbar: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, borderBottomWidth: 1, borderBottomColor: '#222' }, modalTitle: { fontFamily: fonts.bold, fontSize: 20, flex: 1 }, close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' }, link: { color: '#558dff', fontSize: 14 }, modalContent: { padding: 24, paddingBottom: 48, gap: 20 },
-  button: { minHeight: 44, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2468f5' }, secondary: { backgroundColor: '#1a2234' }, buttonText: { color: '#fff', fontFamily: fonts.semibold, fontSize: 14 }, body: { color: '#a5a5a5', fontSize: 14, lineHeight: 21 }, label: { color: '#ccc', fontSize: 13, fontFamily: fonts.semibold }, input: { minHeight: 48, padding: 14, borderRadius: 14, backgroundColor: '#1b1b1b', borderWidth: 1, borderColor: '#303030', color: '#fff', fontSize: 15, lineHeight: 22 }, error: { color: '#ffb8aa', fontSize: 13, lineHeight: 19 },
-  consent: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 6, minHeight: 44 }, checkbox: { width: 23, height: 23, borderRadius: 7, borderWidth: 1, borderColor: '#555', alignItems: 'center', justifyContent: 'center' }, stickers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, artworkChoice: { width: '30%', borderRadius: 14, borderWidth: 2, borderColor: '#292929', backgroundColor: '#191919', padding: 4, alignItems: 'center' },
+  popupContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 16 },
+  modal: { flex: 1, backgroundColor: '#0d0d0d' }, toolbar: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, borderBottomWidth: 1, borderBottomColor: '#222' }, modalTitle: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 27, flex: 1, minWidth: 0 }, close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' }, link: { color: '#558dff', fontSize: 14 }, modalContent: { padding: 24, paddingBottom: 48, gap: 20 },
+  button: { minHeight: 44, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2468f5' }, secondary: { backgroundColor: '#1a2234' }, buttonText: { color: '#fff', fontFamily: fonts.semibold, fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 }, body: { color: '#a5a5a5', fontSize: 14, lineHeight: 21 }, label: { color: '#ccc', fontSize: 13, fontFamily: fonts.semibold }, input: { minHeight: 48, padding: 14, borderRadius: 14, backgroundColor: '#1b1b1b', borderWidth: 1, borderColor: '#303030', color: '#fff', fontSize: 15, lineHeight: 22 }, error: { color: '#ffb8aa', fontSize: 13, lineHeight: 19 },
+  consent: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 6, minHeight: 44 }, checkbox: { width: 23, height: 23, flexShrink: 0, marginTop: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 7, borderWidth: 1, borderColor: '#555' }, artworkGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  artworkCell: { width: '33.333333%', padding: 4 },
+  artworkChoice: { borderRadius: 12, borderWidth: 2, borderColor: '#303030', backgroundColor: '#222222', padding: 4, overflow: 'hidden' },
+  artworkSelected: { borderColor: '#2468f5', backgroundColor: '#172644' },
+  artworkPreview: { width: '100%', aspectRatio: 1, borderRadius: 7 },
+  artworkLabel: { minHeight: 40, textAlignVertical: 'center', textAlign: 'center', color: '#a6a6a6', fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, paddingVertical: 6 },
+  artworkCheck: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: '#2468f5', alignItems: 'center', justifyContent: 'center' },
   card: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, gap: 10 }, heading: { color: '#fff', fontFamily: fonts.bold, fontSize: 20, lineHeight: 25 }, section: { color: '#558dff', fontFamily: fonts.semibold, fontSize: 15, marginTop: 8 },
 });

@@ -1,10 +1,15 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, type TextProps, type StyleProp, type ViewStyle, View } from 'react-native';
+import { Animated, StyleSheet, Text, type TextProps, type StyleProp, type ViewStyle, View } from 'react-native';
 import { colors, fonts } from '../theme';
 import type { Action } from '../data/types';
 
 export function AppText({ style, ...props }: TextProps) {
-  return <Text {...props} style={[styles.text, style]} />;
+  const resolved = StyleSheet.flatten(style);
+  // Larger labels must not inherit the 14px body text's 17px line box.
+  const scaledLine = resolved?.fontSize && resolved.lineHeight === undefined
+    ? { lineHeight: Math.ceil(resolved.fontSize * 1.35) } : undefined;
+  return <Text {...props} style={[styles.text, scaledLine, style]} />;
 }
 
 export function ActionChip({ action, onPress, disabled = false }: { action: Action; onPress: (message: string) => void; disabled?: boolean }) {

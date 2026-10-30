@@ -1,12 +1,15 @@
+import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Image, View } from 'react-native';
 import { gateway, demoMode } from '../auth/Auth';
 import { useAppData } from '../data/AppData';
 import { useMarketplace } from '../data/Marketplace';
 import type { DraftResult, MarketVersion, OwnListing } from '../data/marketplace';
-import { toolLabel } from '../data/marketplace';
+import { PhosphorIcon } from '../components/PhosphorIcon';
+import { marketplaceCover } from '../marketplace-covers';
+import { marketplaceArtworkOptions, toolLabel } from '../data/marketplace';
 import { AppText } from '../components/UI';
-import { Consent, MarketArt, MarketButton, MarketError, MarketField, MarketModal, MarketDisclosure, PublishingArtworkPicker, ui } from '../components/MarketplaceUI';
+import { Consent, MarketButton, MarketError, MarketField, MarketModal, MarketDisclosure, PublishingArtworkPicker, ui } from '../components/MarketplaceUI';
 
 export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClose(): void }) {
   const { api, installations, reload } = useMarketplace();
@@ -44,20 +47,20 @@ export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClo
   return <MarketModal compact title={listing ? 'Manage public agent' : 'Publish an agent'} onClose={onClose} busy={busy}>
     <AppText style={ui.body}>Share an agent you already use. Your personal preferences, connected accounts, and conversations stay private.</AppText>
     {!draft && !busy && <MarketDisclosure title="Choose a private agent" summary="Select an agent to publish" defaultOpen>
-      {available.map(agent => <Pressable key={agent.id} accessibilityRole="button" disabled={demoMode} onPress={() => select(agent.id)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#2b2b2b' }}><AppText style={[ui.disclosureTitle, { flex: 1 }]}>{agent.name}</AppText><AppText style={ui.link}>Choose →</AppText></Pressable>)}
+      {available.map(agent => <Pressable key={agent.id} accessibilityRole="button" disabled={demoMode} onPress={() => select(agent.id)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#2b2b2b' }}><AppText style={[ui.disclosureTitle, { flex: 1 }]}>{agent.name}</AppText><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><AppText style={ui.link}>Choose</AppText><PhosphorIcon name="arrow-right" size={18} color="#558dff" /></View></Pressable>)}
       {!available.length && <AppText style={ui.body}>No eligible private agents yet. Installed marketplace agents cannot be republished.</AppText>}
       {demoMode && <AppText style={ui.body}>Sign in to publish an agent.</AppText>}
     </MarketDisclosure>}
     {busy && !draft && <ActivityIndicator color="#558dff" />}
     {draft && <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><MarketArt image={draft.artwork} size={48} /><View style={{ flex: 1 }}><AppText style={ui.disclosureTitle}>{draft.name}</AppText><AppText style={ui.disclosureSummary}>{'Version ' + draft.version_number}</AppText></View></View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Image source={marketplaceCover('', draft.artwork)} style={{ width: 48, height: 48, borderRadius: 12 }} resizeMode="cover" /><View style={{ flex: 1 }}><AppText style={ui.disclosureTitle}>{draft.name}</AppText><AppText style={ui.disclosureSummary}>{'Version ' + draft.version_number}</AppText></View></View>
       <MarketDisclosure title="Agent name" summary={draft.name} defaultOpen>
         <MarketField label="Name" value={draft.name} maxLength={200} onChange={name => { setDraft({ ...draft, name }); setReviewed(false); }} />
       </MarketDisclosure>
       <MarketDisclosure title="Description" summary={draft.description || 'Describe what your agent does'}>
         <MarketField label="Description" value={draft.description} maxLength={2000} multiline onChange={description => { setDraft({ ...draft, description }); setReviewed(false); }} />
       </MarketDisclosure>
-      <MarketDisclosure title="Artwork" summary="Choose the cover for your agent">
+      <MarketDisclosure title="Artwork" summary={marketplaceArtworkOptions.find(option => option.asset === draft.artwork.asset)?.label ?? 'Choose a cover'}>
         <PublishingArtworkPicker selected={draft.artwork.asset} onSelect={asset => { setDraft({ ...draft, artwork: { asset } }); setReviewed(false); }} />
       </MarketDisclosure>
       <MarketDisclosure title="Public instructions" summary={draft.instructions || 'Explain how your agent works'}>

@@ -1,8 +1,8 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, Platform, StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { fonts } from '../theme';
-import { buttonPressHaptic } from '../haptics';
 
 export type MouthShape = 'smile' | 'small' | 'round' | 'open' | 'wide';
 
@@ -92,7 +92,7 @@ export function TalkingCharacter({ mouth, sleeping = false, reduceMotion = false
   }, [hat, reduceMotion, sink, sleepingPose]);
   const wake = () => {
     if (!sleeping) return;
-    buttonPressHaptic();
+
     if (wakeTimer.current) clearTimeout(wakeTimer.current);
     setAwake(true);
     onWake?.();

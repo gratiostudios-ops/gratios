@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useState } from 'react';
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Linking, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

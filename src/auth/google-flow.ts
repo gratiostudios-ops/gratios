@@ -33,6 +33,6 @@ export async function runGoogleSignIn(configuration: Configuration,
   await verify(session.access_token);
   let notice: string | undefined;
   try { await options.providerSession?.(session.access_token, session.provider_token ?? undefined, session.provider_refresh_token ?? undefined); }
-  catch { notice = 'You are signed in. Gmail is not connected; retry from account settings.'; }
+  catch { notice = 'You are signed in. Gmail is not connected; retry from Connectors in Profile.'; }
   return { ...(notice ? { notice } : {}), userId: session.user.id, access_token: session.access_token, refresh_token: session.refresh_token, expires_in: session.expires_in, token_type: session.token_type };
 }

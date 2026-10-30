@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors, fonts } from '../theme';
 import { useAppData } from '../data/AppData';

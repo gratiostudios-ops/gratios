@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gateway } from '../auth/Auth';
 import { useAppData } from '../data/AppData';

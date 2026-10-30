@@ -1,7 +1,9 @@
+import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
+import { ContactLink } from '../components/ContactLink';
 import { SafeImage } from '../components/SafeImage';
 import { AppText } from '../components/UI';
 import type { MenuActions } from '../components/Navigation';
@@ -14,7 +16,7 @@ import { MarkdownEditor } from './MarkdownEditor';
 import { useAuth } from '../auth/Auth';
 import { ProfileEditor } from './ProfileEditor';
 
-export function ProfileScreen(_menuActions: MenuActions) {
+export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }) {
   const { profile } = useAppData();
   const auth = useAuth();
   const insets = useSafeAreaInsets();
@@ -35,8 +37,9 @@ export function ProfileScreen(_menuActions: MenuActions) {
   const [chatAgent, setChatAgent] = useState<Agent | null>(null);
 
   return <View style={styles.screen}>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 88 + insets.bottom }]}>
-      <View style={[styles.hero, { paddingTop: Math.max(84, insets.top + 30) + 25 }]}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}><ContactLink onPress={onContact} /></View>
+      <View style={[styles.hero, { paddingTop: Math.max(84, insets.top + 30) + 25 - (insets.top + 48) }]}>
         <SafeImage image={profile.avatar} fallback="avatar" style={styles.avatar} resizeMode="cover" accessibilityLabel={`${profile.name}'s avatar`} />
         <View style={styles.identity}><AppText style={styles.name}>{profile.name}</AppText><AppText style={styles.email}>{profile.email}</AppText></View>
         <Pressable accessibilityRole="button" accessibilityLabel="Edit your profile" hitSlop={8} onPress={() => setProfileEditor('about')}><AppText style={styles.editLink}>Edit</AppText></Pressable>
@@ -75,12 +78,12 @@ const styles = StyleSheet.create({
   detailButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   screen: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingBottom: 60 },
-  hero: { flexDirection: 'row', alignItems: 'center', paddingLeft: 25, paddingRight: 27, gap: 17, paddingBottom: 8 },
+  hero: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, gap: 16, paddingBottom: 8 },
   avatar: { width: 69, height: 69, backgroundColor: '#62a2ce', borderRadius: 35, borderWidth: 2, borderColor: '#ffffff' },
-  identity: { flex: 1, gap: 2 },
+  identity: { flex: 1, minWidth: 0, gap: 4 },
   name: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 24, color: '#ffffff' },
   email: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17, color: '#afafaf' },
-  body: { paddingLeft: 25, paddingRight: 20 },
+  body: { paddingHorizontal: 24 },
   label: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17, color: '#bcbcbc' },
   aboutHeading: { minHeight: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: 10, paddingRight: 20 },
   plus: { color: '#777777', fontSize: 22 },

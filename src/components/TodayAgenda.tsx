@@ -1,5 +1,6 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React,{useEffect,useState} from 'react';
-import {Modal,Pressable,ScrollView,View,AppState} from 'react-native';
+import { Modal, ScrollView, View, AppState } from 'react-native';
 import {gateway,demoMode} from '../auth/Auth';
 import {AppText} from './UI';
 type Item={id:string;kind:'task'|'calendar';title:string;dueAt:string;completed:boolean;allDay:boolean};

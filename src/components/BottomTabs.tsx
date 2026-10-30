@@ -1,8 +1,8 @@
+import { HapticPressable as Pressable } from './HapticControls';
 import React from 'react';
-import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bottomTabHeight, colors, fonts } from '../theme';
-import { buttonPressHaptic } from '../haptics';
 import { Icon } from './Icons';
 import { AppText } from './UI';
 
@@ -26,7 +26,7 @@ export function BottomTabs({ active, onChange, onContact }: { active: Tab; onCha
 function TabButton({ tab, selected, onPress }: { tab: { id: Tab; label: string }; selected: boolean; onPress: () => void }) {
   const scale = React.useRef(new Animated.Value(1)).current;
   const pressIn = () => {
-    buttonPressHaptic();
+
     Animated.spring(scale, { toValue: 0.982, speed: 40, bounciness: 0, useNativeDriver: Platform.OS !== 'web' }).start();
   };
   const pressOut = () => Animated.spring(scale, { toValue: 1, speed: 35, bounciness: 4, useNativeDriver: Platform.OS !== 'web' }).start();

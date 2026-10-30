@@ -7,16 +7,16 @@ import { gateway } from './auth/Auth';
 // Remote notifications require a native development/production build and platform credentials.
 const registrations = new Set<AbortController>();
 export function cancelPhonePushRegistrations() { for (const controller of registrations) controller.abort(); }
-export async function registerPhonePush(signal?: AbortSignal, requestPermission = true): Promise<string | undefined> {
+export async function registerPhonePush(signal?: AbortSignal, requestPermission = true, registerDevice?: (token: string, signal: AbortSignal) => Promise<void>): Promise<string | undefined> {
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener('abort', abort, { once: true });
   if (signal?.aborted) controller.abort();
   registrations.add(controller);
-  try { return await register(controller.signal, requestPermission); }
+  try { return await register(controller.signal, requestPermission, registerDevice); }
   finally { registrations.delete(controller); signal?.removeEventListener('abort', abort); }
 }
-async function register(signal: AbortSignal, requestPermission: boolean): Promise<string | undefined> {
+async function register(signal: AbortSignal, requestPermission: boolean, registerDevice?: (token: string, signal: AbortSignal) => Promise<void>): Promise<string | undefined> {
   if (Platform.OS === 'web') return 'Phone notifications are available in the native app.';
   if (!Device.isDevice) return 'Phone notifications require a physical device.';
   if (Constants.appOwnership === 'expo') return 'Use an Avocado development build to enable phone notifications.';
@@ -33,5 +33,6 @@ async function register(signal: AbortSignal, requestPermission: boolean): Promis
   if (!permissions.granted) return 'Phone notifications are disabled. Enable permission in your phone settings.';
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   if (signal?.aborted) return;
-  await gateway.request('/gateway/device', { method: 'PUT', body: JSON.stringify({ token }), signal });
+  if (registerDevice) await registerDevice(token, signal);
+  else await gateway.request('/gateway/device', { method: 'PUT', body: JSON.stringify({ token }), signal });
 }
