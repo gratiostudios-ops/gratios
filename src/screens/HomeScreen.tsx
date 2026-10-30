@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
+import { pendingRequestText, visibleFindingId } from '../data/home-interaction';
 import { responseMessages } from '../data/conversations';
 import { gateway } from '../auth/Auth';
 import { useTaskStack } from '../data/useTaskCard';
@@ -292,6 +293,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
     return [{ finding: item, index, icon, key, agent: agents.find(candidate => candidate.id === item.agentId) }];
   });
   const state = conversation(null);
+  const sentText = pendingRequestText(state);
   const taskStack = useTaskStack(snapshot.tasks, loading, isActive, gateway.cacheIdentity??'demo');
   const hasTasks = taskStack.items.length > 0;
   const bottomPadding = 8;
@@ -362,7 +364,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
     setVisibleCardId(visible?.id ?? null);
     if (homeActive.current && visible) {
       void markSeenRef.current(visible.id).catch(() => {});
-      if (canvasGesture.current) setSelectedId(visible.id);
+
     }
   }).current;
 
@@ -384,6 +386,12 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
         {canvasSize.width > 0 && snapshot.findings.length > 0 ? <FlatList ref={pager} horizontal pagingEnabled data={snapshot.findings} keyExtractor={item => item.id}
           showsHorizontalScrollIndicator={false} extraData={[hasTasks, canvasSize.height]} onViewableItemsChanged={onVisible}
           onScrollBeginDrag={() => { canvasGesture.current = true; }}
+          scrollEventThrottle={16}
+          onScroll={({ nativeEvent }) => {
+            if (!canvasGesture.current || !canvasSize.width) return;
+            const id = visibleFindingId(snapshot.findings, nativeEvent.contentOffset.x, canvasSize.width);
+            if (id) setSelectedId(previous => previous === id ? previous : id);
+          }}
           onMomentumScrollEnd={({ nativeEvent }) => {
             if (!canvasGesture.current) return;
             canvasGesture.current = false;
@@ -391,7 +399,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
             const page = snapshot.findings[Math.round(nativeEvent.contentOffset.x / canvasSize.width)];
             if (page) setSelectedId(page.id);
           }}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 60 }} keyboardShouldPersistTaps="handled"
+          viewabilityConfig={{ itemVisiblePercentThreshold: 60, minimumViewTime: 0 }} keyboardShouldPersistTaps="handled"
           getItemLayout={(_, index) => ({ length: canvasSize.width, offset: index * canvasSize.width, index })}
           renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
         /> : <View style={styles.empty}>
@@ -446,6 +454,9 @@ What’s on your mind?</AppText>
           suggestions={!state.sent ? generalSuggestions : undefined}
           />
       </View>
+      {sentText && <View style={styles.sentMessage}>
+        <ScrollView style={{ maxHeight: 80 }} showsVerticalScrollIndicator={false}><AppText selectable accessibilityLabel="Your sent message" style={styles.sentMessageText}>{sentText}</AppText></ScrollView>
+      </View>}
       <View style={styles.composerRow}>
         <Composer value={draft} setValue={setDraft} onSend={() => sendText(draft)} onCancel={() => { setSpeaking(false); void cancel(); }} running={state.status === 'thinking' || speaking || state.stopFailed === true} keyboardActive={keyboardVisible} />
       </View>
@@ -469,6 +480,8 @@ What’s on your mind?</AppText>
 }
 
 const styles = StyleSheet.create({
+  sentMessage: { alignSelf: 'flex-end', maxWidth: '88%', marginBottom: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: '#242424' },
+  sentMessageText: { color: '#c9c9c9', fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 },
   screen: { flex: 1, backgroundColor: colors.background },
   canvasFrame: { position: 'absolute', top: 0, left: 0, right: 0 },
   stage: { flex: 1, minHeight: 0 },

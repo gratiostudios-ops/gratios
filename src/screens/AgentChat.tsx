@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { pendingRequestText } from '../data/home-interaction';
 import { useAppData } from '../data/AppData';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
 import { RichText } from '../components/RichText';
@@ -12,6 +13,7 @@ export function AgentChat({ agent, onClose }: { agent: { id: string; name: strin
   const insets = useSafeAreaInsets();
   const history = conversations.find(item => item.agentId === agent.id)?.history ?? [];
   const state = conversation(null, agent.id);
+  const sentText = pendingRequestText(state);
   const latest = history[history.length - 1];
   return <Modal animationType="slide" onRequestClose={onClose}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -22,6 +24,7 @@ export function AgentChat({ agent, onClose }: { agent: { id: string; name: strin
         {state.status === 'thinking' && <TypingIndicator />}
         {state.reply?.text && (latest?.role !== 'assistant' || latest.text !== state.reply.text) && <View><RichText accessibilityLiveRegion="polite" style={styles.text} text={state.reply.text} highlights={state.reply.highlights} />{state.reply.actions && <View style={styles.actions}>{state.reply.actions.map(action => <ActionChip key={action.id} action={action} onPress={text => { void send(null, text, agent.id); }} disabled={state.status === 'thinking'} />)}</View>}</View>}
       </ScrollView>
+      {sentText && <View style={{ alignSelf: 'flex-end', maxWidth: '88%', marginHorizontal: 20, marginBottom: 8, padding: 12, borderRadius: 16, backgroundColor: '#242424' }}><AppText selectable style={styles.text}>{sentText}</AppText></View>}
       <View style={styles.composer}><TextInput accessibilityLabel={`Message ${agent.name}`} value={draft} onChangeText={setDraft} placeholder="Your message" placeholderTextColor={colors.muted} multiline style={styles.input} /><Pressable accessibilityRole="button" disabled={!draft.trim() || state.status === 'thinking'} onPress={() => { const text = draft.trim(); setDraft(''); void send(null, text, agent.id); }} style={styles.button}><AppText style={styles.link}>Send</AppText></Pressable></View>
     </KeyboardAvoidingView>
   </Modal>;

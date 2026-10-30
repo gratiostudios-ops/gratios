@@ -12,7 +12,7 @@ import { createRemoteSource } from './remote';
 import { demoMode, gateway } from '../auth/Auth';
 import type { DataSource, MobileData, Reply, SendRequest, Snapshot, Task } from './types';
 
-type Conversation = { status: 'idle' | 'thinking' | 'reply' | 'error'; reply?: Reply; replies?: { id: string; reply: Reply }[]; sent: boolean; messageId?: string; stopFailed?: boolean };
+type Conversation = { status: 'idle' | 'thinking' | 'reply' | 'error'; reply?: Reply; replies?: { id: string; reply: Reply }[]; sent: boolean; requestText?: string; messageId?: string; stopFailed?: boolean };
 const idle: Conversation = { status: 'idle', sent: false };
 const emptyData: MobileData = {
   snapshot: { tasks: [], findings: [] }, agents: [], feed: [], documents: { preferences: '' }, conversations: [],
@@ -86,7 +86,7 @@ function useData(source: DataSource) {
           if (message.status === 'cancelled') { restored[key] = { status: 'idle', sent: true }; continue; }
           const working = message.status === 'queued' || message.status === 'running';
           restored[key] = { status: working ? 'thinking' : message.status === 'failed' ? 'error' : 'reply',
-            sent: true, messageId: message.id, replies: message.replies,
+            sent: true, requestText: working ? message.text : undefined, messageId: message.id, replies: message.replies,
             reply: message.status === 'failed' ? { text: message.error || 'The agent could not complete your request.', actions: [{ id: 'retry', label: 'Try again', message: message.text }] } : message.reply };
         }
         return restored;
@@ -148,7 +148,7 @@ function useData(source: DataSource) {
     };
     activeRequests.current.set(key, operation);
     pending.current.add(key);
-    setConversations(previous => ({ ...previous, [key]: { status: 'thinking', sent: true } }));
+    setConversations(previous => ({ ...previous, [key]: { status: 'thinking', sent: true, requestText: text.trim() } }));
     try {
       const reply = await source.sendMessage(operation.request, (messageId, submissionId) => {
         operation.messageId = messageId; operation.submissionId = submissionId;

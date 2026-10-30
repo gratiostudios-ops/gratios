@@ -70,7 +70,10 @@ function Shell() {
       <View style={{ height: insets.top, backgroundColor: '#000000' }} />
       <LinearGradient colors={['#000000', '#00000000']} style={{ height: 10 }} />
     </View>}
-    {!keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
+    {!keyboardVisible && <View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Contact us" onPress={() => setContact(true)} style={styles.contactFooter}><AppText style={styles.contactLink}>Contact us</AppText></Pressable>
+      <BottomNavigation active={tab} onSelect={navigate} />
+    </View>}
     <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={() => setContact(true)} />
     <Modal visible={contact} transparent animationType="fade" onRequestClose={() => setContact(false)}>
       <View style={styles.scrim}><View style={styles.contactCard}>
@@ -117,6 +120,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.feedBackground },
   shell: { flex: 1, backgroundColor: colors.background, alignSelf: 'stretch', overflow: 'hidden' },
   content: { flex: 1, minHeight: 0 },
+  contactFooter: { minHeight: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  contactLink: { color: '#6D6D6D', fontSize: 12, textDecorationLine: 'underline' },
   statusBarFade: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 },
   scrim: { flex: 1, backgroundColor: '#000000aa', alignItems: 'center', justifyContent: 'center', padding: 28 },
   contactCard: { width: '100%', maxWidth: 360, padding: 26, backgroundColor: colors.surface, borderRadius: 18, gap: 18 },

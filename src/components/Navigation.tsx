@@ -2,13 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buttonPressHaptic } from '../haptics';
+import { buttonPressHaptic, navigationHaptic } from '../haptics';
 import { colors, fonts, layout } from '../theme';
 import { Icon } from './Icons';
+import NavHome from '../../assets/phosphor/nav-home.svg';
+import NavMarketplace from '../../assets/phosphor/nav-marketplace.svg';
+import NavProfile from '../../assets/phosphor/nav-profile.svg';
 import { AppText } from './UI';
 
 export type Destination = 'home' | 'marketplace' | 'profile';
 export type MenuActions = { onOpenMenu: () => void };
+const navigationIcons = { home: NavHome, marketplace: NavMarketplace, profile: NavProfile };
 const destinations: { id: Destination; label: string }[] = [
   { id: 'home', label: 'Home' }, { id: 'marketplace', label: 'Marketplace' }, { id: 'profile', label: 'Profile' },
 ];
@@ -91,6 +95,8 @@ export function NavigationSheet({ visible, active, onClose, onSelect, onContact 
 }
 
 const styles = StyleSheet.create({
+  tabPill: { width: 66, height: 46, borderRadius: 23, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  tabSelection: { ...StyleSheet.absoluteFill, borderRadius: 23, backgroundColor: '#292929' },
   menuButton: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   activeBorder: { ...StyleSheet.absoluteFill, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)' },
   hamburger: { width: 20, height: 16, justifyContent: 'space-between' },
@@ -115,7 +121,19 @@ const styles = StyleSheet.create({
 
 export function BottomNavigation({ active, onSelect }: { active: Destination; onSelect(destination: Destination): void }) {
   const insets = useSafeAreaInsets();
-  return <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: '#0d0d0d', paddingTop: 5, paddingBottom: Math.max(insets.bottom, 8), paddingHorizontal: 24, borderTopWidth: 1, borderTopColor: '#1b1b1b' }}>
-    {destinations.map(destination => <Pressable key={destination.id} accessibilityRole="tab" accessibilityLabel={destination.label} accessibilityState={{ selected: active === destination.id }} onPress={() => { buttonPressHaptic(); onSelect(destination.id); }} style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}><View style={{ width: 66, height: 42, borderRadius: 23, backgroundColor: active === destination.id ? '#292929' : 'transparent', alignItems: 'center', justifyContent: 'center' }}><Icon name={destination.id} size={24} color={active === destination.id ? '#fff' : '#888'} /></View></Pressable>)}
+  return <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: '#0d0d0d', paddingTop: 5, paddingBottom: Math.max(insets.bottom, 8), paddingHorizontal: 24 }}>
+    {destinations.map(destination => {
+      const NavIcon = navigationIcons[destination.id];
+      const selected = active === destination.id;
+      const iconSize = selected ? 31 : 26;
+      return <Pressable key={destination.id} accessibilityRole="tab" accessibilityLabel={destination.label} accessibilityState={{ selected }}
+        onPress={() => { if (!selected) navigationHaptic(); onSelect(destination.id); }}
+        style={{ flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' }}>
+        <View collapsable={false} style={[styles.tabPill, selected && { width: 74 }]}>
+          {selected && <View pointerEvents="none" style={styles.tabSelection} />}
+          <NavIcon width={iconSize} height={iconSize} color={selected ? '#fff' : '#888'} />
+        </View>
+      </Pressable>;
+    })}
   </View>;
 }
