@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { conversationKey } from '../src/data/conversations';
+import { conversationKey, responseMessages } from '../src/data/conversations';
 
 test('different cards from the same agent restore one conversation', () => {
   assert.equal(conversationKey({ findingId: 'card-a', agentId: 'agent-one' }), conversationKey({ findingId: 'card-b', agentId: 'agent-one' }));
   assert.notEqual(conversationKey({ agentId: 'agent-one' }), conversationKey({ agentId: 'agent-two' }));
+});
+
+test('failures follow partial replies and retain retry actions', () => {
+  const partial = { id: 'partial', reply: { text: 'Checking your calendar.' } };
+  const error = { text: 'Calendar unavailable', actions: [{ id: 'retry', label: 'Try again', message: 'Plan today' }] };
+  const messages = responseMessages({ status: 'error', messageId: 'request', replies: [partial], reply: error });
+  assert.deepEqual(messages.map(message => message.reply), [partial.reply, error]);
+  assert.notEqual(messages[0]!.id, messages[1]!.id);
+  assert.deepEqual(responseMessages({ status: 'error', reply: error }).map(message => message.reply), [error]);
+  assert.deepEqual(responseMessages({ status: 'reply', replies: [partial], reply: partial.reply }), [partial]);
 });
 
 test('orchestrator history restores to general chat without merging an agent conversation', () => {

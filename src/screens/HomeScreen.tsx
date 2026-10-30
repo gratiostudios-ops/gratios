@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurTargetView, BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
+import { responseMessages } from '../data/conversations';
 import { gateway } from '../auth/Auth';
 import { useTaskStack } from '../data/useTaskCard';
 import type { Action, AgentIcon, Finding, ImageReference, Reply, Task } from '../data/types';
@@ -52,9 +53,9 @@ function ReplyText({ reply, visibleCharacters }: { reply: Reply; visibleCharacte
   return <RichText style={styles.replyText} text={reply.text} highlights={reply.highlights} visibleCharacters={visibleCharacters} />;
 }
 
-function TypewriterReply({ messages, progress, onAction, working, error, suggestions, onSpeakingChange }: {
+function TypewriterReply({ messages, progress, onAction, working, suggestions, onSpeakingChange }: {
   messages: { id: string; reply: Reply }[]; progress: Map<string, number>; onAction: (message: string) => void;
-  working: boolean; error?: string; suggestions?: Action[];
+  working: boolean; suggestions?: Action[];
   onSpeakingChange: (speaking: boolean) => void;
 }) {
   const latest = messages[messages.length - 1];
@@ -172,7 +173,6 @@ function TypewriterReply({ messages, progress, onAction, working, error, suggest
       {complete && displayed.reply.actions && <View style={styles.replyActions}>{displayed.reply.actions.map(action => <ActionChip key={action.id} action={action} onPress={onAction} />)}</View>}
     </View> : null}
     {!messages.length && suggestions?.length ? <SuggestionButtons actions={suggestions} onAction={onAction} /> : null}
-    {error && <RichText style={styles.replyText} text={error} />}
     </ScrollView>
   </View>;
 }
@@ -184,7 +184,7 @@ function Figure({ image, heroHeight, hasTasks }: { image: ImageReference; heroHe
   const baseHeight = isFlight ? 173 : 207;
   const fullHeight = Math.min(baseHeight * 1.32, Math.max(0, heroHeight + 7));
   // Only one banner affects the illustration; expanded reminders overlay it.
-  const targetHeight = Math.max(0, fullHeight - (hasTasks ? 45 : 0));
+  const targetHeight = Math.max(0, fullHeight - (hasTasks ? 45 : 0)) * (image.asset === 'mail' ? 0.7 : 1);
   useEffect(() => {
     const animation = Animated.timing(dimensions, { toValue: targetHeight, duration: 240, useNativeDriver: false });
     animation.start();
@@ -241,7 +241,7 @@ function Composer({ value, setValue, onSend, onCancel, running, keyboardActive }
 }
 
 export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void }) {
-  const { snapshot, loading, agents, completeTask, restoreTask, conversation, send, cancel, markCardSeen } = useAppData();
+  const { snapshot, loading, agents, completeTask, restoreTask, actionErrors, conversation, send, cancel, markCardSeen } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -337,9 +337,9 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
 
   const undoCompletion = useCallback(async () => {
     if (!undoTaskItem) return;
-    if(!await restoreTask(undoTaskItem))return;
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = null;
+    if(!await restoreTask(undoTaskItem))return;
     setUndoTaskItem(null);
     undoProgress.stopAnimation();
     undoProgress.setValue(0);
@@ -368,7 +368,7 @@ export function HomeScreen({ isActive, onNewCard, ...menuActions }: MenuActions 
 
   const keyboardVisible = keyboardOpen || (fullHeight > 0 && fullHeight - viewportHeight > 80);
 
-  const taskList = <TaskBannerStack items={taskStack.items} expanded={taskStack.expanded} onToggle={taskStack.toggle} onComplete={completeWithUndo}/>;
+  const taskList = <TaskBannerStack items={taskStack.items} expanded={taskStack.expanded} onToggle={taskStack.toggle} onComplete={completeWithUndo} errors={actionErrors}/>;
 
   return <View style={styles.screen} onLayout={({ nativeEvent: { layout: viewport } }) => {
     setViewportHeight(previous => previous === viewport.height ? previous : viewport.height);
@@ -440,15 +440,15 @@ What’s on your mind?</AppText>
     <View style={[styles.composerDock, { bottom: (keyboardVisible ? layout.keyboardGap : bottomPadding) + 3 }]}>
       <View style={[styles.conversationBody, { height: 74 + reclaimedHeight }]}>
         <TypewriterReply
-          messages={state.replies?.length ? state.replies : state.reply?.text ? [{ id: state.messageId ?? `${activeId}-${state.reply.text}`, reply: state.reply }] : []}
+          messages={responseMessages(state)}
           progress={replyProgress} onAction={sendText} working={state.status === 'thinking'}
           onSpeakingChange={setSpeaking}
           suggestions={!state.sent ? generalSuggestions : undefined}
-          error={state.status === 'error' && state.replies?.length ? state.reply?.text : undefined} />
+          />
       </View>
       <View style={styles.composerRow}>
         <NavigationButton {...menuActions} keyboardActive={keyboardVisible} />
-        <Composer value={draft} setValue={setDraft} onSend={() => sendText(draft)} onCancel={() => { setSpeaking(false); void cancel(); }} running={state.status === 'thinking' || speaking} keyboardActive={keyboardVisible} />
+        <Composer value={draft} setValue={setDraft} onSend={() => sendText(draft)} onCancel={() => { setSpeaking(false); void cancel(); }} running={state.status === 'thinking' || speaking || state.stopFailed === true} keyboardActive={keyboardVisible} />
       </View>
     </View>
     {undoTaskItem && <Animated.View pointerEvents="box-none" style={[styles.undoToastPosition, { top: hasTasks ? chromeHeight + 8 : Math.max(insets.top, 8) + 8 }, {
@@ -460,6 +460,7 @@ What’s on your mind?</AppText>
     }]}>
       <View style={styles.undoToast}>
         <AppText style={styles.undoLabel}>Task not completed?</AppText>
+        {actionErrors[undoTaskItem.id] ? <AppText accessibilityLiveRegion="polite">{actionErrors[undoTaskItem.id]}</AppText> : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Undo task completion" onPress={undoCompletion} hitSlop={8}>
           <AppText style={styles.undoAction}>Undo</AppText>
         </Pressable>

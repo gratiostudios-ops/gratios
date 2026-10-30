@@ -1,8 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { registerPhonePush } from '../notifications';
 import * as Crypto from 'expo-crypto';
 import { mobileCache } from './mobile-cache';
+import { createRefreshQueue } from './refresh-queue';
 import {applyCompletion,applyPendingCompletions,type CompletionUpdate} from './agenda-state';
 import { conversationKey, sessionMessage } from './conversations';
 import { demoData } from './demo';
@@ -11,7 +12,7 @@ import { createRemoteSource } from './remote';
 import { demoMode, gateway } from '../auth/Auth';
 import type { DataSource, MobileData, Reply, SendRequest, Snapshot, Task } from './types';
 
-type Conversation = { status: 'idle' | 'thinking' | 'reply' | 'error'; reply?: Reply; replies?: { id: string; reply: Reply }[]; sent: boolean; messageId?: string };
+type Conversation = { status: 'idle' | 'thinking' | 'reply' | 'error'; reply?: Reply; replies?: { id: string; reply: Reply }[]; sent: boolean; messageId?: string; stopFailed?: boolean };
 const idle: Conversation = { status: 'idle', sent: false };
 const emptyData: MobileData = {
   snapshot: { tasks: [], findings: [] }, agents: [], feed: [], documents: { preferences: '' }, conversations: [],
@@ -27,7 +28,7 @@ function useData(source: DataSource) {
   latestData.current=data;
   const completionUpdates=useRef(new Map<string,CompletionUpdate>());
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
   const [conversations, setConversations] = useState<Record<string, Conversation>>({});
   const [cacheIdentity] = useState(() => gateway.cacheIdentity);
   const [cache] = useState(() => !demoMode && gateway.cacheIdentity ? mobileCache.open(gateway.cacheIdentity) : null);
@@ -37,32 +38,29 @@ function useData(source: DataSource) {
   const mutedConversations = useRef(new Set<string>());
   const activeRequests = useRef(new Map<string, { request: SendRequest; cancelled: boolean; stopping: boolean; messageId?: string; submissionId?: string }>());
   const mounted = useRef(true);
-  const refreshing = useRef<Promise<void> | null>(null);
   const revision = useRef(0);
   const chatRevision = useRef(0);
+  const messageStates = useRef(new Map<string, string>());
   const reportedNotificationFailures = useRef(new Set<string>());
-  const refresh = useCallback((): Promise<void> => {
-    if (refreshing.current) return refreshing.current;
-    refreshing.current = (async () => {
-      const loadRevision = revision.current;
-      const loadedChatRevision = chatRevision.current;
-      const next = source.loadMobile ? await source.loadMobile() : { ...demoMobile, snapshot: await source.load() };
-      if (!mounted.current || loadRevision !== revision.current || cacheIdentity && cacheIdentity !== gateway.cacheIdentity) return;
-      setData(previous => applyPendingCompletions({...next,
-        ...(next.agendaError?{agendaItems:previous.agendaItems,snapshot:{...next.snapshot,tasks:previous.snapshot.tasks}}:{}),
-        ...(next.agendaTasksError&&!next.agendaError?{agendaItems:[...(previous.agendaItems??[]).filter(item=>item.kind==='task'),...(next.agendaItems??[]).filter(item=>item.kind==='calendar')],snapshot:{...next.snapshot,tasks:[...previous.snapshot.tasks.filter(item=>item.kind==='task'),...next.snapshot.tasks.filter(item=>item.kind==='calendar')]}}:{}),
-        ...(loadedChatRevision===chatRevision.current?{}:{conversations:previous.conversations}),
-      },completionUpdates.current)); setLoading(false);
-      if(next.agendaError||next.agendaTasksError)setError(next.agendaError??next.agendaTasksError!);
-      if (cache && !next.agendaError && !next.agendaTasksError && !completionUpdates.current.size) void cache.write(next).catch(() => {});
-      const failures = next.notificationFailures ?? [];
-      if (failures.some(failure => !reportedNotificationFailures.current.has(failure.id))) {
-        setError('A notification could not be delivered to your phone.');
-      }
-      for (const failure of failures) reportedNotificationFailures.current.add(failure.id);
-    })().finally(() => { refreshing.current = null; });
-    return refreshing.current;
-  }, [source, cache, cacheIdentity]);
+  const refresh = useMemo(() => createRefreshQueue(async () => {
+    const loadRevision = revision.current;
+    const loadedChatRevision = chatRevision.current;
+    const next = source.loadMobile ? await source.loadMobile() : { ...demoMobile, snapshot: await source.load() };
+    if (!mounted.current || cacheIdentity && cacheIdentity !== gateway.cacheIdentity) return;
+    if (loadRevision !== revision.current) return true;
+    setData(previous => applyPendingCompletions({...next,
+      ...(next.agendaError?{agendaItems:previous.agendaItems,snapshot:{...next.snapshot,tasks:previous.snapshot.tasks}}:{}),
+      ...(next.agendaTasksError&&!next.agendaError?{agendaItems:[...(previous.agendaItems??[]).filter(item=>item.kind==='task'),...(next.agendaItems??[]).filter(item=>item.kind==='calendar')],snapshot:{...next.snapshot,tasks:[...previous.snapshot.tasks.filter(item=>item.kind==='task'),...next.snapshot.tasks.filter(item=>item.kind==='calendar')]}}:{}),
+      ...(loadedChatRevision===chatRevision.current?{}:{conversations:previous.conversations}),
+    },completionUpdates.current)); setLoading(false);
+    if(next.agendaError||next.agendaTasksError)console.warn(next.agendaError??next.agendaTasksError);
+    if (cache && !next.agendaError && !next.agendaTasksError && !completionUpdates.current.size) void cache.write(next).catch(() => {});
+    const failures = next.notificationFailures ?? [];
+    if (failures.some(failure => !reportedNotificationFailures.current.has(failure.id))) {
+      console.warn('A notification could not be delivered to your phone.');
+    }
+    for (const failure of failures) reportedNotificationFailures.current.add(failure.id);
+  }), [source, cache, cacheIdentity]);
   useEffect(() => {
     mounted.current = true;
     let foreground = AppState.currentState === 'active';
@@ -70,6 +68,13 @@ function useData(source: DataSource) {
     const unsubscribeChat = source.subscribeChat?.(next => {
       if (!mounted.current) return;
       chatRevision.current++;
+      let completed = false;
+      for (const thread of next) for (const message of thread.messages) {
+        const prior = messageStates.current.get(message.id);
+        if (message.status === 'completed' && prior !== 'completed') completed = true;
+        messageStates.current.set(message.id, message.status);
+      }
+      if (completed) { revision.current++; void refresh().catch(error => console.warn('Could not refresh cards', error)); }
       setData(previous => ({ ...previous, conversations: next }));
       setConversations(previous => {
         const restored = { ...previous };
@@ -82,12 +87,12 @@ function useData(source: DataSource) {
           const working = message.status === 'queued' || message.status === 'running';
           restored[key] = { status: working ? 'thinking' : message.status === 'failed' ? 'error' : 'reply',
             sent: true, messageId: message.id, replies: message.replies,
-            reply: message.status === 'failed' ? { text: message.error || 'The agent could not complete your request.' } : message.reply };
+            reply: message.status === 'failed' ? { text: message.error || 'The agent could not complete your request.', actions: [{ id: 'retry', label: 'Try again', message: message.text }] } : message.reply };
         }
         return restored;
       });
     });
-    const update = () => { void refresh().catch(error => { if (mounted.current) { setError(error instanceof Error ? error.message : 'Could not load your updates.'); setLoading(false); } }); };
+    const update = () => { void refresh().catch(error => { if (mounted.current) { console.warn(error instanceof Error ? error.message : 'Could not load your updates.'); setLoading(false); } }); };
     void (async () => {
       if (cache && !hydrated.current) {
         const cached = await cache.read();
@@ -106,6 +111,7 @@ function useData(source: DataSource) {
   }, [source, refresh, cache]);
   const changeCompletion=useCallback(async(task:Task,completed:boolean)=>{
     if(completionUpdates.current.has(task.id))return false;
+    setActionErrors(previous => ({ ...previous, [task.id]: '' }));
     const before=latestData.current;
     const previousItem=before.agendaItems?.find(item=>item.id===task.id);
     const previousBanner=before.snapshot.tasks.find(item=>item.id===task.id);
@@ -120,7 +126,7 @@ function useData(source: DataSource) {
     }catch{
       if(mounted.current){
         setData(previous=>applyCompletion(previous,task.id,{completed:previousItem?.completed??!completed,...(previousBanner?{task:previousBanner}:{})}));
-        setError(completed?'Could not mark that item done. Please try again.':'Could not undo that item. Please try again.');
+        setActionErrors(previous => ({ ...previous, [task.id]: completed?'Could not mark that item done. Please try again.':'Could not undo that item. Please try again.' }));
       }
       return false;
     }finally{
@@ -153,7 +159,7 @@ function useData(source: DataSource) {
       if (mounted.current && !operation.cancelled) setConversations(previous => ({ ...previous, [key]: { ...previous[key], status: 'error', sent: true, reply: { text: error instanceof Error ? error.message : 'Could not send your message. Please try again.', actions: [{ id: 'retry', label: 'Try again', message: text }] } } }));
     } finally {
       if (!operation.cancelled && activeRequests.current.get(key) === operation) pending.current.delete(key);
-      if (mounted.current && !operation.cancelled) void refresh().catch(() => {});
+      if (mounted.current && !operation.cancelled) { revision.current++; void refresh().catch(error => console.warn('Could not refresh cards', error)); }
     }
   }, [source, refresh, data.snapshot.findings, data.conversations]);
   const cancel = useCallback(async (findingId: string | null = null, agentId?: string) => {
@@ -176,7 +182,7 @@ function useData(source: DataSource) {
       }
       activeRequests.current.delete(key); pending.current.delete(key);
     } catch {
-      if (mounted.current) setError('Could not stop the response on this device. Tap stop again to retry.');
+      if (mounted.current) setConversations(previous => ({ ...previous, [key]: { ...previous[key], status: 'error', sent: true, stopFailed: true, reply: { text: 'Could not stop the response on this device. Tap stop again to retry.' } } }));
     } finally { operation.stopping = false; }
   }, [source, refresh, data.snapshot.findings]);
   const saveDocument = useCallback(async (id: string, text: string) => {
@@ -222,7 +228,7 @@ function useData(source: DataSource) {
         const message = await registerPhonePush(controller.signal, requestPermission);
         if (controller.signal.aborted || !mounted.current) return;
         if (message) {
-          if (message !== lastIssue) setError(message);
+          if (message !== lastIssue) console.warn(message);
           lastIssue = message;
           return;
         }
@@ -236,7 +242,7 @@ function useData(source: DataSource) {
       } catch (failure) {
         if (!controller.signal.aborted && mounted.current) {
           const message = 'Phone notification registration failed. ' + (failure instanceof Error ? failure.message : 'Reopen the app to retry.');
-          if (message !== lastIssue) setError(message);
+          if (message !== lastIssue) console.warn(message);
           lastIssue = message;
         }
       } finally { registering = false; }
@@ -246,13 +252,12 @@ function useData(source: DataSource) {
     return () => { controller.abort(); foreground.remove(); removeTokenListener?.(); };
   }, []);
   return {
-    ...data, loading, error, completeTask, restoreTask, send, cancel, refresh, saveDocument, isDemo: demoMode,
+    ...data, loading, actionErrors, completeTask, restoreTask, send, cancel, refresh, saveDocument, isDemo: demoMode,
     conversation: (id: string | null, agentId?: string) => {
       const target = agentId ?? data.snapshot.findings.find(card => card.id === id)?.agentId;
       return conversations[conversationKey({ agentId: target, findingId: id })] ?? idle;
     },
     markCardSeen,
-    dismissError: () => setError(null),
   };
 }
 const Context = createContext<ReturnType<typeof useData> | null>(null);

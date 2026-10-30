@@ -15,7 +15,7 @@ import { Poppins_400Regular } from '@expo-google-fonts/poppins/400Regular';
 import { Poppins_600SemiBold } from '@expo-google-fonts/poppins/600SemiBold';
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_900Black } from '@expo-google-fonts/inter/900Black';
-import { AppDataProvider, useAppData } from './src/data/AppData';
+import { AppDataProvider } from './src/data/AppData';
 import { NavigationSheet, type Destination } from './src/components/Navigation';
 import { TabPager } from './src/components/TabPager';
 import { AppText } from './src/components/UI';
@@ -36,7 +36,6 @@ function Shell() {
   }, []);
   const [contact, setContact] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { error, dismissError } = useAppData();
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (history.length <= 1) return false;
@@ -63,7 +62,6 @@ function Shell() {
       <LinearGradient colors={['#000000', '#00000000']} style={{ height: 10 }} />
     </View>}
     <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={() => setContact(true)} />
-    {error && <Pressable accessibilityRole="button" accessibilityLabel="Dismiss error" onPress={dismissError} style={[styles.error, { top: Math.max(insets.top, 8) + 8 }]}><AppText>{error} ×</AppText></Pressable>}
     <Modal visible={contact} transparent animationType="fade" onRequestClose={() => setContact(false)}>
       <View style={styles.scrim}><View style={styles.contactCard}>
         <AppText accessibilityRole="header" style={styles.contactTitle}>Contact us</AppText>
@@ -116,5 +114,4 @@ const styles = StyleSheet.create({
   contactBody: { color: colors.body, lineHeight: 21 },
   close: { minHeight: 40, borderRadius: 22, backgroundColor: colors.blue, justifyContent: 'center', alignItems: 'center' },
   closeText: { fontFamily: fonts.semibold, color: colors.onBlue },
-  error: { zIndex: 110, elevation: 110, position: 'absolute', top: 44, left: 22, right: 22, padding: 16, borderRadius: 12, backgroundColor: colors.task },
 });

@@ -6,7 +6,7 @@ import {colors} from '../theme';
 import {AppText} from './UI';
 import {TaskCard} from './TaskCard';
 
-function BannerRow({task,visible,onComplete}:{task:Task;visible:boolean;onComplete:(task:Task)=>Promise<boolean>}){
+function BannerRow({task,visible,onComplete,error}:{task:Task;visible:boolean;onComplete:(task:Task)=>Promise<boolean>;error?:string}){
   const [height,setHeight]=useState(45);
   const progress=useRef(new Animated.Value(visible?1:0)).current;
   useEffect(()=>{
@@ -16,16 +16,16 @@ function BannerRow({task,visible,onComplete}:{task:Task;visible:boolean;onComple
   return <Animated.View accessibilityElementsHidden={!visible} importantForAccessibility={visible?'auto':'no-hide-descendants'}
     style={{height:progress.interpolate({inputRange:[0,1],outputRange:[0,height+8]}),overflow:'hidden',opacity:progress}}>
     <Animated.View onLayout={event=>setHeight(event.nativeEvent.layout.height)} style={{transform:[{translateY:progress.interpolate({inputRange:[0,1],outputRange:[-height,0]})}]}}>
-      <TaskCard task={task} onComplete={()=>onComplete(task)}/>
+      <TaskCard task={task} onComplete={()=>onComplete(task)} error={error}/>
     </Animated.View>
   </Animated.View>;
 }
-export function TaskBannerStack({items,expanded,onToggle,onComplete}:{items:Task[];expanded:boolean;onToggle:()=>void;onComplete:(task:Task)=>Promise<boolean>}){
+export function TaskBannerStack({items,expanded,onToggle,onComplete,errors}:{items:Task[];expanded:boolean;onToggle:()=>void;onComplete:(task:Task)=>Promise<boolean>;errors?:Record<string,string>}){
   if(!items.length)return null;
   return <View style={styles.stack}>
     <AppText style={styles.label}>Have you completed this</AppText>
     <View style={styles.row}><View style={styles.items}>
-      {items.map((task,index)=><BannerRow key={task.id} task={task} visible={expanded||index===items.length-1} onComplete={onComplete}/>)}
+      {items.map((task,index)=><BannerRow key={task.id} task={task} visible={expanded||index===items.length-1||!!errors?.[task.id]} onComplete={onComplete} error={errors?.[task.id]}/>)}
     </View>{items.length>1&&<Pressable accessibilityRole="button" accessibilityLabel={expanded?'Collapse reminders':'Expand reminders'} accessibilityState={{expanded}}
       style={styles.toggle} onPress={onToggle}>
       <Svg width={25} height={25} viewBox="0 0 25 25"><Circle cx={12.5} cy={12.5} r={10.5} stroke="#bdbdbd" strokeWidth={2.5} fill="none"/>

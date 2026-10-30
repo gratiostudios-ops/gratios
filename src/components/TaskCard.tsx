@@ -9,7 +9,7 @@ import { AppText } from './UI';
 const completionDuration = 1000;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: string) => boolean | Promise<boolean> }) {
+export function TaskCard({ task, onComplete, error }: { task: Task; onComplete: (id: string) => boolean | Promise<boolean>; error?: string }) {
   const [checked, setChecked] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
   const checkmark = useRef(new Animated.Value(0)).current;
@@ -80,6 +80,7 @@ export function TaskCard({ task, onComplete }: { task: Task; onComplete: (id: st
       </Animated.View>
     </Pressable>
     </Animated.View>
+    {error ? <AppText accessibilityLiveRegion="polite" style={{ color: colors.body, padding: 8 }}>{error}</AppText> : null}
   </Animated.View>;
 }
 
