@@ -12,7 +12,7 @@ import { type MenuActions } from '../components/Navigation';
 import { colors, fonts } from '../theme';
 
 export function SuggestionsScreen(menuActions: MenuActions) {
-  const { feed, conversations, isDemo } = useAppData();
+  const { feed } = useAppData();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<FeedItem | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -40,13 +40,7 @@ export function SuggestionsScreen(menuActions: MenuActions) {
           </Pressable>)}
         </View>)}
         {feed.length === 0 && <AppText style={styles.empty}>Your agents’ published updates will appear here.</AppText>}
-        {!isDemo && conversations.length > 0 && <View style={{ gap: 18, marginTop: 24 }}>
-          <AppText accessibilityRole="header" style={styles.sectionTitle}>Conversation history</AppText>
-          {conversations.flatMap(conversation => conversation.messages.map(message => <View key={message.id} style={{ gap: 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.divider }}>
-            <AppText style={styles.title}>{message.text}</AppText>
-            <AppText style={styles.description}>{message.reply?.text ?? message.error ?? (message.status === 'queued' ? 'Queued…' : 'Working…')}</AppText>
-          </View>))}
-        </View>}
+
       </ScrollView>
       <LinearGradient pointerEvents="none" colors={['#080808', '#080808e5', '#080808cc', '#08080895', '#08080800']} locations={[0, 0.201923, 0.427885, 0.605769, 1]} style={styles.topFade} />
       <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d95', '#0d0d0dcc', '#0d0d0de5', '#0d0d0d']} locations={[0, 0.394231, 0.572115, 0.798077, 1]} style={styles.bottomFade} />

@@ -1,6 +1,6 @@
 import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
 import { ContactLink } from '../components/ContactLink';
@@ -9,8 +9,6 @@ import { AppText } from '../components/UI';
 import type { MenuActions } from '../components/Navigation';
 import { ConnectorSettings } from '../components/ConnectorSettings';
 import { AgentManager } from '../components/AgentManager';
-import type { Agent } from '../data/types';
-import { AgentChat } from './AgentChat';
 import { colors, fonts } from '../theme';
 import { MarkdownEditor } from './MarkdownEditor';
 import { useAuth } from '../auth/Auth';
@@ -32,9 +30,7 @@ export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }
     catch (error) { setLogoutError(error instanceof Error ? error.message : 'Could not log out. Please try again.'); }
     finally { setLoggingOut(false); }
   };
-  const [editor, setEditor] = useState<{ id: string; title: string } | null>(null);
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [chatAgent, setChatAgent] = useState<Agent | null>(null);
+  const [editor, setEditor] = useState<{ id: string; title: string; readOnly: boolean } | null>(null);
 
   return <View style={styles.screen}>
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}>
@@ -56,17 +52,15 @@ export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }
           <Pressable accessibilityRole="button" onPress={() => setProfileEditor('preferences')} hitSlop={8}><AppText style={styles.editLink}>Edit</AppText></Pressable></View>
         <View style={styles.preferenceList}>{(allPreferences ? profile.preferences : profile.preferences.slice(0, 2)).map((preference, index) => <View key={index} style={styles.preferenceRow}><AppText style={[styles.preferenceText, styles.preferenceContent]}>{preference}</AppText></View>)}</View>
         {profile.preferences.length > 2 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: allPreferences }} onPress={() => setAllPreferences(value => !value)} hitSlop={8} style={styles.preferencesMore}><AppText style={styles.link}>{allPreferences ? 'show less −' : 'show all +'}</AppText></Pressable>}
-        <AgentManager onEdit={setSelectedAgent} />
+        <AgentManager onEdit={(agent, readOnly = false) => setEditor({ id: agent.id + ':AGENT', title: agent.name, readOnly })} />
         <AppText style={[styles.label, styles.connectorsLabel]}>Connectors</AppText>
         <ConnectorSettings />
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: loggingOut, busy: loggingOut }} disabled={loggingOut} onPress={() => { void logout(); }} style={({ pressed }) => [styles.logoutButton, (pressed || loggingOut) && { opacity: 0.65 }]}><AppText style={styles.logoutText}>{loggingOut ? 'Logging out…' : 'Log out'}</AppText></Pressable>
         {!!logoutError && <AppText accessibilityLiveRegion="polite" style={{ color: '#ffb8aa', fontSize: 13 }}>{logoutError}</AppText>}
       </View>
     </ScrollView>
-    {selectedAgent && <Modal transparent animationType="fade" onRequestClose={() => setSelectedAgent(null)}><View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#000a', padding: 24 }}><View style={{ backgroundColor: '#202020', borderRadius: 22, padding: 24, gap: 16 }}><AppText style={styles.detailTitle}>{selectedAgent.name}</AppText><Pressable accessibilityRole="button" onPress={() => { setEditor({ id: selectedAgent.id + ':PREFERENCE', title: selectedAgent.name + ' preferences' }); setSelectedAgent(null); }}><AppText style={styles.editLink}>Edit private preferences</AppText></Pressable><Pressable accessibilityRole="button" onPress={() => { setEditor({ id: selectedAgent.id + ':AGENT', title: selectedAgent.name + ' purpose' }); setSelectedAgent(null); }}><AppText style={styles.editLink}>Edit purpose</AppText></Pressable><Pressable accessibilityRole="button" onPress={() => { setChatAgent(selectedAgent); setSelectedAgent(null); }}><AppText style={styles.editLink}>Chat</AppText></Pressable><Pressable accessibilityRole="button" onPress={() => setSelectedAgent(null)}><AppText style={styles.editLink}>Close</AppText></Pressable></View></View></Modal>}
-    {chatAgent && <AgentChat agent={chatAgent} onClose={() => setChatAgent(null)} />}
     {profileEditor && <ProfileEditor preferencesOnly={profileEditor === 'preferences'} onClose={() => setProfileEditor(null)} />}
-    {editor && <MarkdownEditor key={editor.id} documentId={editor.id} title={editor.title} onClose={() => setEditor(null)} />}
+    {editor && <MarkdownEditor key={editor.id} documentId={editor.id} title={editor.title} readOnly={editor.readOnly} onClose={() => setEditor(null)} />}
   </View>;
 }
 

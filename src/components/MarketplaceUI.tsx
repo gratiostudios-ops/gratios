@@ -20,6 +20,9 @@ export function MarketButton({ label, onPress, disabled, secondary, busy }: { la
     {busy ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={[ui.buttonText, secondary && { color: '#b5c9ff' }]}>{label}</AppText>}
   </Pressable>;
 }
+export function MarketRows({ items }: { items: string[] }) {
+  return <View style={ui.capabilityList}>{items.map((item, index) => <View key={item} style={[ui.capabilityRow, index === items.length - 1 && { borderBottomWidth: 0 }]}><AppText style={ui.popupBody}>{item}</AppText></View>)}</View>;
+}
 export function MarketError({ text }: { text?: string }) { return text ? <AppText accessibilityLiveRegion="polite" style={ui.error}>{text}</AppText> : null; }
 export function MarketField({ label, value, onChange, multiline = false, maxLength = 16000 }: { label: string; value: string; onChange(value: string): void; multiline?: boolean; maxLength?: number }) {
   return <View style={{ gap: 8 }}><AppText style={ui.label}>{label}</AppText><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} maxLength={maxLength} placeholderTextColor="#666" selectionColor="#2468f5" textAlignVertical={multiline ? 'top' : 'center'} style={[ui.input, multiline && { minHeight: 104 }]} /></View>;
@@ -80,6 +83,8 @@ export function PublishingArtworkPicker({ selected, onSelect }: { selected?: str
 }
 
 export const ui = StyleSheet.create({
+  capabilityList: { borderRadius: 14, backgroundColor: '#242424', overflow: 'hidden' },
+  capabilityRow: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ffffff20' },
   disclosure: { backgroundColor: '#1b1b1b', borderRadius: 16, overflow: 'hidden' },
   disclosureHeader: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   disclosureTitle: { fontFamily: fonts.semibold, fontSize: 14, color: '#dedede' },

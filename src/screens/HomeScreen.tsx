@@ -165,7 +165,6 @@ function TypewriterReply({ messages, progress, onAction, working, suggestions, o
       <TalkingCharacter mouth={working && finishedSpeaking ? 'smile' : mouth} sleeping={!working && finishedSpeaking} reduceMotion={reduceMotion}
         onWake={() => setWakePrompt(true)} onSleep={() => setWakePrompt(false)} />
     </View>
-    {working && <View pointerEvents="none" style={styles.loadingSlot}><TypingIndicator style={{ paddingHorizontal: 0 }} /></View>}
     <ScrollView ref={scroll} style={styles.replyScroll} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" contentContainerStyle={styles.reply}
     onContentSizeChange={() => { if (followLatest.current) scroll.current?.scrollToEnd({ animated: false }); }}
     onScroll={({ nativeEvent }) => { followLatest.current = nativeEvent.contentSize.height - nativeEvent.contentOffset.y - nativeEvent.layoutMeasurement.height < 24; }} scrollEventThrottle={16}
@@ -301,6 +300,11 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
   const bottomPadding = 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
   const responseHeight = Math.max(74, 74 + reclaimedHeight - 24);
+  // Screen-space anchors do not move when the sent text or composer grows.
+  const screenHeight = keyboardOpen ? viewportHeight : (fullHeight || viewportHeight);
+  const responseBottom = Math.max(0, screenHeight - bottomPadding - layout.inputHeight - 10);
+  const responseTop = Math.max(insets.top + 100, responseBottom - responseHeight + Math.max(0, (responseHeight - 74) / 2));
+  const canvasBottom = Math.max(0, responseTop - 20);
   const chromeAvailableHeight = Math.max(48, canvasHeroHeight(canvasSize.height, insets.top) - insets.top - 8);
 
   useEffect(() => {
@@ -381,7 +385,7 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
       (!keyboardOpen && !Keyboard.isVisible() && Math.abs(previous - viewport.height) < 80) ? viewport.height : previous);
   }}>
     <BlurTargetView ref={blurTarget} style={StyleSheet.absoluteFill}>
-    <View style={[styles.canvasFrame, fullHeight > 0 ? { height: fullHeight } : { bottom: 0 }, { paddingBottom: bottomPadding }]}>
+    <View style={[styles.canvasFrame, screenHeight > 0 ? { height: canvasBottom } : { bottom: 0 }]}>
 
     <View style={styles.stage}>
       <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
@@ -441,7 +445,6 @@ What’s on your mind?</AppText>
       </View>
     </View>
 
-    <View style={{ height: layout.conversationHeight + reclaimedHeight - 24 }} />
     </View>
     </BlurTargetView>
     {keyboardVisible && <Pressable accessibilityRole="button" accessibilityLabel="Dismiss keyboard"
@@ -449,15 +452,16 @@ What’s on your mind?</AppText>
       <BlurView pointerEvents="none" blurTarget={blurTarget} blurMethod="dimezisBlurViewSdk31Plus" tint="dark" intensity={20} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.keyboardShade} />
     </Pressable>}
+    <View style={[styles.responseFrame, { top: responseTop, height: Math.max(74, responseBottom - responseTop) }]}>
+      <TypewriterReply
+        messages={responseMessages(state)}
+        progress={replyProgress} onAction={sendText} working={state.status === 'thinking'}
+        onSpeakingChange={setSpeaking}
+        suggestions={!state.sent ? generalSuggestions : undefined}
+      />
+    </View>
+    {state.status === 'thinking' && <View pointerEvents="none" style={[styles.thinkingIndicator, { top: Math.max(responseTop, responseBottom - 40) }]}><TypingIndicator style={{ paddingHorizontal: 0 }} /></View>}
     <View style={[styles.composerDock, { bottom: 8 }]}>
-      <View style={[styles.conversationBody, { height: responseHeight }]}>
-        <TypewriterReply
-          messages={responseMessages(state)}
-          progress={replyProgress} onAction={sendText} working={state.status === 'thinking'}
-          onSpeakingChange={setSpeaking}
-          suggestions={!state.sent ? generalSuggestions : undefined}
-          />
-      </View>
       {sentText && <View style={styles.sentMessage}>
         <ScrollView style={{ maxHeight: 80 }} showsVerticalScrollIndicator={false}><AppText selectable accessibilityLabel="Your sent message" style={styles.sentMessageText}>{sentText}</AppText></ScrollView>
       </View>}
@@ -484,8 +488,8 @@ What’s on your mind?</AppText>
 }
 
 const styles = StyleSheet.create({
-  sentMessage: { alignSelf: 'flex-end', maxWidth: '88%', marginBottom: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: '#242424' },
-  sentMessageText: { color: '#c9c9c9', fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 },
+  sentMessage: { alignSelf: 'stretch', marginLeft: 73, marginBottom: 8, paddingHorizontal: 4 },
+  sentMessageText: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 12, lineHeight: 17 },
   screen: { flex: 1, backgroundColor: colors.background },
   canvasFrame: { position: 'absolute', top: 0, left: 0, right: 0 },
   stage: { flex: 1, minHeight: 0 },
@@ -505,14 +509,14 @@ const styles = StyleSheet.create({
   findingIcons: { alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
   findingButton: { minWidth: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text },
-  conversationBody: { height: 74, marginBottom: 10, overflow: 'visible', justifyContent: 'center' },
+  responseFrame: { position: 'absolute', left: layout.gutter, right: layout.gutter, zIndex: 31 },
+  thinkingIndicator: { position: 'absolute', left: layout.gutter + 5, height: 40, zIndex: 32, justifyContent: 'center' },
   suggestions: { flex: 1, justifyContent: 'center', overflow: 'hidden' },
   suggestionChips: { gap: 8, flexShrink: 0, alignItems: 'flex-start' },
   replyRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  assistantSlot: { position: 'absolute', left: 0, top: '50%', transform: [{ translateY: -29 }], width: 58, height: 58, alignItems: 'center', justifyContent: 'center' },
-  loadingSlot: { position: 'absolute', left: 5, bottom: 0, height: 40, justifyContent: 'center' },
+  assistantSlot: { position: 'absolute', left: 0, top: 8, width: 58, height: 58, alignItems: 'center', justifyContent: 'center' },
   replyScroll: { flex: 1, alignSelf: 'stretch', minWidth: 0, marginLeft: 73 },
-  reply: { flexGrow: 1, justifyContent: 'center', gap: 8, paddingVertical: 6 },
+  reply: { flexGrow: 1, justifyContent: 'flex-start', gap: 8 },
   replyBubble: { borderRadius: 16, paddingHorizontal: 4, paddingVertical: 4, gap: 8 },
   replyText: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: colors.body },
   replyHighlight: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: '#ffffff' },

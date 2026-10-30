@@ -7,13 +7,13 @@ import { useAppData } from '../data/AppData';
 import { AppText } from '../components/UI';
 import { colors, fonts } from '../theme';
 
-export function MarkdownEditor({ documentId, title, onClose }: { documentId: string; title: string; onClose: () => void }) {
+export function MarkdownEditor({ documentId, title, onClose, readOnly = false }: { documentId: string; title: string; onClose: () => void; readOnly?: boolean }) {
   const { documents, saveDocument } = useAppData();
   const [value, setValue] = useState(documents[documentId] ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const save = async () => {
-    if (saving) return;
+    if (saving || readOnly) return;
     setSaving(true); setError(null);
     try { await saveDocument(documentId, value); onClose(); }
     catch (error) { setError(error instanceof Error ? error.message : 'Could not save. Please try again.'); }
@@ -24,14 +24,14 @@ export function MarkdownEditor({ documentId, title, onClose }: { documentId: str
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: Math.max(20, insets.top), paddingBottom: insets.bottom }]}>
       <StatusBar hidden={false} style="light" />
       <View style={styles.toolbar}>
-        <Pressable accessibilityRole="button" onPress={onClose} style={styles.button}><AppText style={styles.cancel}>Cancel</AppText></Pressable>
+        <Pressable accessibilityRole="button" onPress={onClose} style={styles.button}><AppText style={styles.cancel}>{readOnly ? 'Close' : 'Cancel'}</AppText></Pressable>
         <AppText numberOfLines={1} accessibilityRole="header" style={styles.title}>{title}</AppText>
-        <Pressable accessibilityRole="button" disabled={saving} onPress={() => { void save(); }} style={[styles.button, styles.save]}><AppText style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</AppText></Pressable>
+        {!readOnly && <Pressable accessibilityRole="button" disabled={saving} onPress={() => { void save(); }} style={[styles.button, styles.save]}><AppText style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</AppText></Pressable>}
       </View>
       <AppText style={styles.filename}>{documentId.split(':').pop()?.toUpperCase()}.md</AppText>
-      <TextInput accessibilityLabel={`${title} Markdown`} multiline autoCorrect={false} autoCapitalize="none" spellCheck={false} textAlignVertical="top" value={value} onChangeText={setValue}
+      <TextInput accessibilityLabel={`${title} Markdown`} multiline editable={!readOnly} autoCorrect={false} autoCapitalize="none" spellCheck={false} textAlignVertical="top" value={value} onChangeText={setValue}
         style={styles.editor} selectionColor={colors.blue} placeholder="# Your instructions" placeholderTextColor={colors.faint} />
-      <AppText accessibilityLiveRegion="polite" style={styles.hint}>{error ?? 'Markdown · Save to update your instructions'}</AppText>
+      <AppText accessibilityLiveRegion="polite" style={styles.hint}>{error ?? (readOnly ? 'Marketplace instructions · Read-only' : 'Markdown · Save to update your instructions')}</AppText>
     </KeyboardAvoidingView>
   </Modal>;
 }

@@ -5,14 +5,13 @@ import { gateway, demoMode } from '../auth/Auth';
 import { useAppData } from '../data/AppData';
 import { useMarketplace } from '../data/Marketplace';
 import type { Agent } from '../data/types';
-import type { Installation, OwnListing } from '../data/marketplace';
+import type { OwnListing } from '../data/marketplace';
 import { AppText } from './UI';
 import { MarketArt, MarketError, ui } from './MarketplaceUI';
 import { PublishAgent } from '../screens/PublishAgent';
-import { MarketplaceDetail } from '../screens/MarketplaceDetail';
 import { fonts } from '../theme';
 
-export function AgentManager({ onEdit }: { onEdit(agent: Agent): void }) {
+export function AgentManager({ onEdit }: { onEdit(agent: Agent, readOnly?: boolean): void }) {
   const { agents } = useAppData();
   const { fontScale } = useWindowDimensions();
   const cardHeight = Math.ceil(160 + 104 * Math.max(1, fontScale));
@@ -20,7 +19,6 @@ export function AgentManager({ onEdit }: { onEdit(agent: Agent): void }) {
   const { mine, installations, error, reload, revision } = useMarketplace();
   const [editing, setEditing] = useState<OwnListing | null>(null);
   const [publishing, setPublishing] = useState(false);
-  const [selected, setSelected] = useState<Installation | null>(null);
   const [configured, setConfigured] = useState<{ id: string; name: string; enabled: boolean; role: string }[]>([]);
   useEffect(() => { let active = true; if (!demoMode) void gateway.request<{ agents: typeof configured }>('/gateway/config').then(value => { if (active) setConfigured(value.agents); }).catch(() => {}); return () => { active = false; }; }, [revision]);
   const privateAgents = [...agents];
@@ -41,11 +39,10 @@ export function AgentManager({ onEdit }: { onEdit(agent: Agent): void }) {
     <AppText style={{ color: '#858585', fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17 }}>Private</AppText>
     {privateAgents.length > 0 && <ScrollView horizontal showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} nestedScrollEnabled snapToInterval={cardWidth + 12} decelerationRate="fast" accessibilityLabel="Your private agents" contentContainerStyle={{ gap: 12, paddingRight: 6, paddingBottom: 6 }} style={{ height: cardHeight + 6, flexGrow: 0, marginRight: 0 }}>{privateAgents.map(agent => {
       const installed = installations.find(item => item.agent_id === agent.id);
-      return card(agent.name, agent.description, agent.image, 'Edit', () => installed ? setSelected(installed) : onEdit(agent), agent.id, installed?.missing_setup.length ? 'Setup needed' : agent.enabled === false ? 'Paused' : undefined, true);
+      return card(agent.name, agent.description, agent.image, installed ? 'View' : 'Edit', () => onEdit(agent, !!installed), agent.id, installed?.missing_setup.length ? 'Setup needed' : agent.enabled === false ? 'Paused' : undefined, true);
     })}</ScrollView>}
     {!privateAgents.length && <AppText style={ui.body}>Add an agent from Marketplace to get started.</AppText>}
     </View>
     {(editing || publishing) && <PublishAgent listing={editing ?? undefined} onClose={() => { setEditing(null); setPublishing(false); }} />}
-    {selected && <MarketplaceDetail listingId={selected.marketplace_agent_id} initialInstallation={selected} onClose={() => setSelected(null)} />}
   </View>;
 }
