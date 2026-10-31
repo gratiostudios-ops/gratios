@@ -1,6 +1,7 @@
 import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
 import { SafeImage } from '../components/SafeImage';
@@ -12,12 +13,13 @@ import { colors, fonts } from '../theme';
 import { MarkdownEditor } from './MarkdownEditor';
 import { useAuth } from '../auth/Auth';
 import { ProfileEditor } from './ProfileEditor';
+import { PhosphorIcon } from '../components/PhosphorIcon';
 
 export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }) {
   const { profile } = useAppData();
   const auth = useAuth();
   const insets = useSafeAreaInsets();
-  const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [preferencesExpanded, setPreferencesExpanded] = useState(false);
   const [allPreferences, setAllPreferences] = useState(false);
   const [profileEditor, setProfileEditor] = useState<'about' | 'preferences' | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -32,28 +34,30 @@ export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }
   const [editor, setEditor] = useState<{ id: string; title: string; readOnly: boolean } | null>(null);
 
   return <View style={styles.screen}>
+    <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}>
-      <View style={{ height: insets.top + 48 }} />
-      <View style={[styles.hero, { paddingTop: Math.max(84, insets.top + 30) + 25 - (insets.top + 48) }]}>
+      <View style={{ height: insets.top + 20 }} />
+      <View style={styles.hero}>
         <SafeImage image={profile.avatar} fallback="avatar" style={styles.avatar} resizeMode="cover" accessibilityLabel={`${profile.name}'s avatar`} />
-        <View style={styles.identity}><AppText style={styles.name}>{profile.name}</AppText><AppText style={styles.email}>{profile.email}</AppText></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Edit your profile" hitSlop={8} onPress={() => setProfileEditor('about')}><AppText style={styles.editLink}>Edit</AppText></Pressable>
+        <View style={styles.identity}><AppText numberOfLines={2} style={styles.name}>{profile.name}</AppText><AppText numberOfLines={2} style={styles.email}>{profile.email}</AppText></View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Edit your profile" hitSlop={8} onPress={() => setProfileEditor('about')} style={styles.editButton}><AppText style={styles.editButtonText}>Edit</AppText></Pressable>
       </View>
       <View style={styles.body}>
-        <Pressable accessibilityRole="button" accessibilityLabel="About you" accessibilityState={{ expanded: aboutExpanded }} onPress={() => setAboutExpanded(value => !value)} style={styles.aboutHeading}>
-          <AppText style={styles.label}>About you</AppText><AppText style={styles.plus}>{aboutExpanded ? '−' : '+'}</AppText>
-        </Pressable>
-        {aboutExpanded && <View style={styles.aboutContent}>
-          <View style={styles.preferencesHeading}><AppText style={styles.preferenceText}>DOB: {profile.dob || '—'}</AppText><Pressable accessibilityRole="button" onPress={() => setProfileEditor('about')}><AppText style={styles.editLink}>Edit</AppText></Pressable></View>
-          <View style={styles.interests}>{profile.interests.map(interest => <View key={interest} style={styles.interest}><AppText style={styles.interestText}>{interest}</AppText></View>)}</View>
-        </View>}
-        <View style={styles.preferencesHeading}><AppText style={styles.label}>Preferences</AppText>
-          <Pressable accessibilityRole="button" onPress={() => setProfileEditor('preferences')} hitSlop={8}><AppText style={styles.editLink}>Edit</AppText></Pressable></View>
-        <View style={styles.preferenceList}>{(allPreferences ? profile.preferences : profile.preferences.slice(0, 2)).map((preference, index) => <View key={index} style={styles.preferenceRow}><AppText style={[styles.preferenceText, styles.preferenceContent]}>{preference}</AppText></View>)}</View>
-        {profile.preferences.length > 2 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: allPreferences }} onPress={() => setAllPreferences(value => !value)} hitSlop={8} style={styles.preferencesMore}><AppText style={styles.link}>{allPreferences ? 'show less −' : 'show all +'}</AppText></Pressable>}
+        <View style={[styles.profileTile, styles.secondTile]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Preferences" accessibilityState={{ expanded: preferencesExpanded }} onPress={() => setPreferencesExpanded(value => !value)} style={styles.aboutHeading}>
+            <AppText style={styles.label}>Preferences</AppText><View style={{ transform: [{ rotate: preferencesExpanded ? '180deg' : '0deg' }] }}><PhosphorIcon name="caret-down" size={18} color="#a1a1a6" /></View>
+          </Pressable>
+          {preferencesExpanded && <View style={[styles.aboutContent, styles.expandedPreferences]}>
+            <View style={[styles.preferencesHeading, { justifyContent: 'flex-end' }]}><Pressable accessibilityRole="button" onPress={() => setProfileEditor('preferences')} hitSlop={8}><AppText style={styles.editLink}>Edit</AppText></Pressable></View>
+            <View style={styles.preferencesPanel}>
+              <View style={styles.preferenceList}>{(allPreferences ? profile.preferences : profile.preferences.slice(0, 2)).map((preference, index) => <View key={index} style={styles.preferenceRow}><AppText style={[styles.preferenceText, styles.preferenceContent]}>{preference}</AppText></View>)}</View>
+              {profile.preferences.length > 2 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: allPreferences }} onPress={() => setAllPreferences(value => !value)} hitSlop={8} style={styles.preferencesMore}><AppText style={styles.link}>{allPreferences ? 'Show less' : 'Show all'}</AppText></Pressable>}
+            </View>
+          </View>}
+        </View>
         <AgentManager onEdit={(agent, readOnly = false) => setEditor({ id: agent.id + ':AGENT', title: agent.name, readOnly })} />
         <AppText style={[styles.label, styles.connectorsLabel]}>Connectors</AppText>
-        <ConnectorSettings />
+        <View style={styles.connectorTile}><ConnectorSettings /></View>
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: loggingOut, busy: loggingOut }} disabled={loggingOut} onPress={() => { void logout(); }} style={({ pressed }) => [styles.logoutButton, (pressed || loggingOut) && { opacity: 0.65 }]}><AppText style={styles.logoutText}>{loggingOut ? 'Logging out…' : 'Log out'}</AppText></Pressable>
         {!!logoutError && <AppText accessibilityLiveRegion="polite" style={{ color: '#ffb8aa', fontSize: 13 }}>{logoutError}</AppText>}
       </View>
@@ -64,37 +68,44 @@ export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }
 }
 
 const styles = StyleSheet.create({
-  logoutButton: { alignSelf: 'stretch', minHeight: 50, alignItems: 'center', justifyContent: 'center', marginTop: 34, borderRadius: 16, backgroundColor: '#2B2B2B' },
-  logoutText: { color: '#EF5350', fontFamily: fonts.semibold, fontSize: 14, lineHeight: 20 },
+  logoutButton: { alignSelf: 'stretch', minHeight: 50, alignItems: 'center', justifyContent: 'center', marginTop: 28, borderRadius: 999, backgroundColor: '#1b1b1d', borderWidth: StyleSheet.hairlineWidth, borderColor: '#303034' },
+  logoutText: { color: '#ff453a', fontFamily: fonts.medium, fontSize: 15, lineHeight: 20 },
   detailHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, minHeight: 56 },
   detailTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 18 },
   detailButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   screen: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { paddingBottom: 60 },
-  hero: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, gap: 16, paddingBottom: 8 },
-  avatar: { width: 69, height: 69, backgroundColor: '#62a2ce', borderRadius: 35, borderWidth: 2, borderColor: '#ffffff' },
-  identity: { flex: 1, minWidth: 0, gap: 4 },
-  name: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 24, color: '#ffffff' },
-  email: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17, color: '#afafaf' },
-  body: { paddingHorizontal: 24 },
-  label: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 17, color: '#bcbcbc' },
-  aboutHeading: { minHeight: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.divider, marginBottom: 10, paddingRight: 20 },
-  plus: { color: '#777777', fontSize: 22 },
-  aboutContent: { paddingVertical: 12 },
+  topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 152 },
+  scrollContent: { paddingBottom: 40, gap: 18 },
+  hero: { marginHorizontal: 22, padding: 22, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#111113', borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: '#29292d' },
+  avatar: { width: 60, height: 60, flexShrink: 0, backgroundColor: '#29292d', borderRadius: 30 },
+  identity: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', minWidth: 0, gap: 8 },
+  name: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 23, letterSpacing: -0.2, color: '#ffffff' },
+  email: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: '#a6a6a6' },
+  editButton: { minHeight: 44, minWidth: 36, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
+  editButtonText: { color: '#2468f5', textDecorationLine: 'underline', fontFamily: fonts.semibold, fontSize: 13, lineHeight: 19 },
+  body: { paddingHorizontal: 22, gap: 14 },
+  profileTile: { backgroundColor: 'transparent', borderRadius: 0, paddingHorizontal: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#303034' },
+  secondTile: { backgroundColor: 'transparent' },
+  label: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 20, color: '#ffffff', letterSpacing: -0.1 },
+  aboutHeading: { minHeight: 54, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  aboutContent: { paddingTop: 6, paddingBottom: 16, gap: 10 },
+  expandedPreferences: { marginHorizontal: -12, marginBottom: 14 },
+  preferencesPanel: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 8, borderRadius: 14, backgroundColor: '#111113' },
   groupLabel: { color: '#858585', fontSize: 14, fontFamily: fonts.semibold, marginBottom: 9, marginTop: 10 },
   emptyPublic: { color: '#777777', fontSize: 12, paddingVertical: 8 },
-  connectorsLabel: { marginTop: 34, marginBottom: 8 },
+  connectorsLabel: { marginTop: 14, marginBottom: 2, fontSize: 18, lineHeight: 24, color: '#ffffff', letterSpacing: -0.15 },
+  connectorTile: { paddingHorizontal: 0, paddingVertical: 0 },
   interests: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  interest: { backgroundColor: colors.surface, paddingVertical: 6, paddingHorizontal: 25, borderRadius: 30, minHeight: 27 },
-  interestText: { fontSize: 12, lineHeight: 15, letterSpacing: 0.12, color: '#dedede', textAlign: 'center' },
-  link: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 14, letterSpacing: 0.12, color: '#2468f5' },
+  interest: { backgroundColor: '#29292d', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 999, minHeight: 42, borderWidth: StyleSheet.hairlineWidth, borderColor: '#3b3b40' },
+  interestText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: '#ffffff', textAlign: 'center' },
+  link: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: '#2468f5' },
   preferencesHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  editLink: { color: '#2468f5', fontSize: 12, lineHeight: 17, textDecorationLine: 'underline', letterSpacing: 0.14, paddingRight: 10 },
-  preferenceList: { marginTop: 3, paddingHorizontal: 12, backgroundColor: '#151515', borderRadius: 12, overflow: 'hidden' },
-  preferenceRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.divider },
-  preferenceContent: { color: '#6D6D6D', lineHeight: 22 },
-  preferenceText: { color: '#d2d2d2', fontSize: 14, lineHeight: 17, letterSpacing: 0.14 },
-  preferencesMore: { marginTop: 12, marginLeft: 14, alignSelf: 'flex-start' },
+  editLink: { color: '#2468f5', fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, paddingRight: 6 },
+  preferenceList: { paddingHorizontal: 0, backgroundColor: 'transparent', overflow: 'hidden' },
+  preferenceRow: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#303034' },
+  preferenceContent: { color: '#cccccc', lineHeight: 22 },
+  preferenceText: { color: '#ffffff', fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
+  preferencesMore: { marginTop: 2, alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   agentsLabel: { marginTop: 26, marginBottom: 0 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 13, columnGap: 11, paddingLeft: 1.3, paddingRight: 3.7 },
   agentCard: { height: 210, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', paddingTop: 18, paddingHorizontal: 12 },

@@ -11,8 +11,9 @@ import { buttonPressHaptic } from '../haptics';
 import { fonts } from '../theme';
 import { AppText } from './UI';
 import { MarketButton } from './MarketplaceUI';
+import { MarketplaceDeckSkeleton } from './MarketplaceSkeleton';
 
-export function MarketplaceDeck({ items, onOpen, onAdd, installed }: { items: MarketListing[]; onOpen(item: MarketListing): void; onAdd?(item: MarketListing): void; installed: Set<string> }) {
+export function MarketplaceDeck({ items, onOpen, onAdd, installed, loading = false }: { items: MarketListing[]; onOpen(item: MarketListing): void; onAdd?(item: MarketListing): void; installed: Set<string>; loading?: boolean }) {
   const { width: windowWidth } = useWindowDimensions();
   const width = Math.min(windowWidth - 79, 370);
   const position = useRef(new Animated.ValueXY()).current;
@@ -62,6 +63,7 @@ export function MarketplaceDeck({ items, onOpen, onAdd, installed }: { items: Ma
     onPanResponderRelease: (_, gesture) => fly(gesture.dx, gesture.dy * 0.25, gesture.vx),
     onPanResponderTerminate: () => { if (!animating.current) snapBack(); },
   }), [index, items.length, width, reduceMotion]);
+  if (loading) return <MarketplaceDeckSkeleton width={width} />;
   if (!items.length) return <View style={[styles.empty, { width }]}><AppText style={styles.emptyTitle}>Your next great agent</AppText><AppText style={styles.emptyText}>Featured agents will appear here as creators publish them.</AppText></View>;
   if (index >= items.length) return <View style={{ alignItems: 'center', paddingTop: 22, paddingBottom: 4 }}><View style={[styles.empty, styles.caughtUp, { width, height: width * 0.86, marginVertical: 0, alignItems: 'center' }]}><Svg pointerEvents="none" width={width} height={width * 0.86} style={StyleSheet.absoluteFill}><Rect x={1} y={1} width={width - 2} height={width * 0.86 - 2} rx={44} fill="none" stroke="#3A3A3A" strokeWidth={1} strokeDasharray={[30, 20]} /></Svg><AppText accessibilityRole="header" style={styles.emptyTitle}>You're all caught up</AppText><AppText style={styles.emptyText}>You've explored all {items.length} agents.</AppText><MarketButton label="Reload" onPress={() => { position.setValue({ x: 0, y: 0 }); setIndex(0); }} /></View></View>;
   // Keep five cards mounted for preloading; reveal only the front two.
@@ -76,6 +78,7 @@ export function MarketplaceDeck({ items, onOpen, onAdd, installed }: { items: Ma
         <GlassCardSurface item={item}><Pressable accessibilityRole="button" onPress={() => onOpen(item)} style={{ flex: 1, minWidth: 0, gap: 4 }}><AppText numberOfLines={2} style={styles.cardTitle}>{item.name}</AppText><AppText numberOfLines={2} style={styles.description}>{item.description}</AppText></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={(installed.has(item.id) ? 'Manage ' : 'Add ') + item.name} onPress={() => (onAdd ?? onOpen)(item)} style={styles.add}><AppText style={styles.addText}>{installed.has(item.id) ? 'Added' : 'Add'}</AppText></Pressable>
         </GlassCardSurface>
+        {offset > 0 && <View pointerEvents="none" style={styles.rearCardShade} />}
       </Animated.View>)}
     </View>
 
@@ -102,6 +105,7 @@ function GlassCardSurface({ item, children }: { item: MarketListing; children: R
 const styles = StyleSheet.create({
   caughtUp: { backgroundColor: '#111111', borderWidth: 0 },
   glassLayer: { ...StyleSheet.absoluteFill, borderRadius: 21 },
+  rearCardShade: { ...StyleSheet.absoluteFill, borderRadius: 44, backgroundColor: 'rgba(0, 0, 0, 0.2)' },
   cardArtwork: { ...StyleSheet.absoluteFill, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden' },
   coverImage: { width: '100%', height: '100%', transform: [{ scale: 1.05 }] },
   glassRim: { ...StyleSheet.absoluteFill, borderRadius: 20, borderTopWidth: 1, borderLeftWidth: 1, borderBottomWidth: 1, borderRightWidth: 1, borderTopColor: '#ffffff30', borderLeftColor: '#ffffff20', borderBottomColor: '#ffffff10', borderRightColor: '#ffffff10' },

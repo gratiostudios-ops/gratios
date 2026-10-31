@@ -19,7 +19,7 @@ export async function registerPhonePush(signal?: AbortSignal, requestPermission 
 async function register(signal: AbortSignal, requestPermission: boolean, registerDevice?: (token: string, signal: AbortSignal) => Promise<void>): Promise<string | undefined> {
   if (Platform.OS === 'web') return 'Phone notifications are available in the native app.';
   if (!Device.isDevice) return 'Phone notifications require a physical device.';
-  if (Constants.appOwnership === 'expo') return 'Use an Avocado development build to enable phone notifications.';
+  if (Constants.appOwnership === 'expo') return 'Use a Gratios development build to enable phone notifications.';
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
   if (!projectId) return 'Phone notifications need an Expo project ID configured.';
   const Notifications = await import('expo-notifications');

@@ -168,7 +168,7 @@ function TypewriterReply({ messages, progress, onAction, working, suggestions, o
     onContentSizeChange={() => { if (followLatest.current) scroll.current?.scrollToEnd({ animated: false }); }}
     onScroll={({ nativeEvent }) => { followLatest.current = nativeEvent.contentSize.height - nativeEvent.contentOffset.y - nativeEvent.layoutMeasurement.height < 24; }} scrollEventThrottle={16}
     accessibilityLiveRegion={complete ? 'polite' : 'none'}>
-    {wakePrompt ? <AppText accessibilityLiveRegion="polite" style={styles.replyHighlight}>What do you need?</AppText> : displayed ? <View key={displayed.id} style={styles.replyBubble}>
+    {wakePrompt ? <AppText accessibilityLiveRegion="polite" style={styles.replyHighlight}>I’m here with you. What would feel helpful?</AppText> : displayed ? <View key={displayed.id} style={styles.replyBubble}>
       <ReplyText reply={displayed.reply} visibleCharacters={visibleCharacters} />
       {complete && displayed.reply.actions && <View style={styles.replyActions}>{displayed.reply.actions.map(action => <ActionChip key={action.id} action={action} onPress={onAction} />)}</View>}
     </View> : null}
@@ -179,23 +179,20 @@ function TypewriterReply({ messages, progress, onAction, working, suggestions, o
 
 function Figure({ image, heroHeight, hasTasks }: { image: ImageReference; heroHeight: number; hasTasks: boolean }) {
   const dimensions = useRef(new Animated.Value(0)).current;
-  const isFlight = image.asset === 'flight';
-  const baseWidth = isFlight ? 181 : 276;
-  const baseHeight = isFlight ? 173 : 207;
+  const baseWidth = 276 * 0.85;
+  const baseHeight = 207 * 0.85;
   const fullHeight = Math.min(baseHeight * 1.32, Math.max(0, heroHeight + 7));
   // Only one banner affects the illustration; expanded reminders overlay it.
-  const targetHeight = Math.max(0, fullHeight - (hasTasks ? 45 : 0)) * (image.asset === 'mail' ? 0.7 : 1);
+  const targetHeight = Math.max(0, fullHeight - (hasTasks ? 45 : 0));
   useEffect(() => {
     const animation = Animated.timing(dimensions, { toValue: targetHeight, duration: 240, useNativeDriver: false });
     animation.start();
     return () => animation.stop();
   }, [dimensions, targetHeight]);
-  return <View style={{ height: heroHeight, alignItems: 'center', justifyContent: 'flex-end', transform: [{ translateX: -5 }] }}>
+  return <View style={{ height: heroHeight, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 12, transform: [{ translateX: -5 }] }}>
     <Animated.View style={{ width: Animated.multiply(dimensions, baseWidth / baseHeight), height: dimensions, overflow: 'hidden', marginBottom: -7 }}>
       <SafeImage image={image} allowAvatar={false} resizeMode="contain" accessibilityLabel="Agent illustration" style={[
         StyleSheet.absoluteFill, { width: '100%', height: '100%' },
-        // The supplied mail artwork has wide transparent margins; fit its visible envelope.
-        image.asset === 'mail' && { width: '182%', height: '280%', top: '-95%', left: '-44%' },
       ]} />
     </Animated.View>
   </View>;
@@ -409,14 +406,12 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
           renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
         /> : <ScrollView contentContainerStyle={[styles.empty, { flexGrow: 1 }]} showsVerticalScrollIndicator={false}>
           <View style={styles.welcomeCard} accessibilityLabel="Welcome card">
-            <View style={styles.welcomeIcon}><Icon name="greeting" color="#b8cfff" /></View>
-            <AppText accessibilityRole="header" style={styles.emptyTitle}>Hey, glad you’re here.</AppText>
-            <AppText style={styles.emptyBody}>A little space for your day.
-What’s on your mind?</AppText>
+            <AppText style={styles.welcomeHello}>hey,</AppText>
+            <AppText accessibilityRole="header" style={styles.welcomeTitle}>Glad you’re here.</AppText>
+            <AppText style={styles.welcomeBody}>We can figure out what matters today, one thing at a time.</AppText>
           </View>
         </ScrollView>}
         <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasTopFade} />
-        <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasFade} />
         {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: insets.top + 40, height: 8 + 14 + 8 + 45 / 2 }]} />}
         {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top + 40, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
           onLayout={({ nativeEvent: { layout: chrome } }) => setChromeHeight(previous => previous === chrome.height ? previous : chrome.height)}>
@@ -425,6 +420,7 @@ What’s on your mind?</AppText>
           </ScrollView>
         </View>}
       </View>
+      <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.canvasFade, { bottom: layout.findingNavigationHeight - 4 }]} />
       <View style={styles.findingNavigation}>
 
         {snapshot.findings.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.findingIcons}>
@@ -496,15 +492,17 @@ const styles = StyleSheet.create({
   canvasTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 26, color: colors.text, textAlign: 'center', marginRight: 7 },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 252 },
   canvasTopFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 28 },
-  canvasFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 28 },
+  canvasFade: { position: 'absolute', left: 0, right: 0, height: 28, zIndex: 1 },
   bannerBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#000000' },
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
-  welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center' },
-  welcomeIcon: { marginBottom: 24, padding: 20, borderRadius: 40, backgroundColor: '#24334f' },
+  welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
+  welcomeHello: { fontFamily: fonts.semibold, color: '#f2e7da', fontSize: 58, lineHeight: 66, letterSpacing: -3.5, marginBottom: 8 },
+  welcomeTitle: { fontFamily: fonts.semibold, fontSize: 28, lineHeight: 34, textAlign: 'center', letterSpacing: -0.5, color: '#ffffff' },
+  welcomeBody: { maxWidth: 290, fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, textAlign: 'center', color: '#c9c9c9', marginTop: 6 },
   empty: { paddingHorizontal: 42, justifyContent: 'center', alignItems: 'center' },
   emptyTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29, textAlign: 'center' },
   emptyBody: { fontSize: 14, lineHeight: 21, textAlign: 'center', color: colors.muted, marginTop: 12 },
-  findingNavigation: { height: layout.findingNavigationHeight, alignItems: 'center', justifyContent: 'center' },
+  findingNavigation: { height: layout.findingNavigationHeight, zIndex: 2, alignItems: 'center', justifyContent: 'center' },
   findingIcons: { alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
   findingButton: { minWidth: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
   pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text },

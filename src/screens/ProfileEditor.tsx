@@ -31,9 +31,9 @@ export function ProfileEditor({ preferencesOnly = false, onClose }: { preference
   };
   return <Modal animationType="slide" onRequestClose={onClose}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: insets.top + 48, paddingBottom: insets.bottom }]}>
-      <View style={styles.toolbar}><Pressable accessibilityRole="button" onPress={onClose} style={styles.button}><AppText style={styles.link}>Cancel</AppText></Pressable>
+      <View style={styles.toolbar}><Pressable accessibilityRole="button" onPress={onClose} style={[styles.button, styles.secondaryButton]}><AppText style={styles.secondaryText}>Cancel</AppText></Pressable>
         <AppText accessibilityRole="header" style={styles.title}>{preferencesOnly ? 'Preferences' : 'About you'}</AppText>
-        <Pressable accessibilityRole="button" disabled={saving} onPress={() => { void save(); }} style={styles.button}><AppText style={styles.link}>{saving ? 'Saving…' : 'Save'}</AppText></Pressable></View>
+        <Pressable accessibilityRole="button" disabled={saving} onPress={() => { void save(); }} style={[styles.button, styles.primaryButton, saving && { opacity: 0.55 }]}><AppText style={styles.primaryText}>{saving ? 'Saving…' : 'Save'}</AppText></Pressable></View>
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         {!preferencesOnly && <>
           <AppText style={styles.label}>Name</AppText><TextInput accessibilityLabel="Name" style={styles.input} value={name} onChangeText={setName} />
@@ -48,7 +48,17 @@ export function ProfileEditor({ preferencesOnly = false, onClose }: { preference
   </Modal>;
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background }, toolbar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }, button: { minHeight: 44, padding: 12, justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center', fontFamily: fonts.semibold, fontSize: 18 }, link: { color: colors.blue }, form: { padding: 27, gap: 12 }, label: { color: colors.secondary, marginTop: 12 },
-  input: { backgroundColor: colors.surface, color: colors.text, fontFamily: fonts.regular, fontSize: 16, padding: 14, borderRadius: 12, minHeight: 48 }, multiline: { minHeight: 130, lineHeight: 24 }, error: { color: '#ff9eaa', lineHeight: 22 },
+  screen: { flex: 1, backgroundColor: '#000000' },
+  toolbar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
+  button: { minHeight: 44, minWidth: 80, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
+  secondaryButton: { borderWidth: 1, borderColor: '#2468f5', backgroundColor: 'transparent' },
+  primaryButton: { backgroundColor: '#2468f5' },
+  secondaryText: { color: '#2468f5', fontFamily: fonts.medium, fontSize: 14 },
+  primaryText: { color: '#ffffff', fontFamily: fonts.semibold, fontSize: 14 },
+  title: { flex: 1, textAlign: 'center', fontFamily: fonts.semibold, fontSize: 21, letterSpacing: -0.15, color: '#ffffff' },
+  form: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 32, gap: 10 },
+  label: { color: '#cccccc', fontFamily: fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 16 },
+  input: { backgroundColor: '#272729', color: '#ffffff', fontFamily: fonts.regular, fontSize: 16, padding: 14, borderRadius: 11, minHeight: 48 },
+  multiline: { minHeight: 140, lineHeight: 24 },
+  error: { color: '#ff9eaa', lineHeight: 22 },
 });

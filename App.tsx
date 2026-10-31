@@ -99,8 +99,8 @@ export default function App() {
   }, [fontError]);
   if (!loaded) return <View style={styles.loading} onLayout={onReady}>
     <StatusBar hidden={false} style="light" />
-    <Image source={require('./assets/brand/logo.png')} resizeMode="contain" style={styles.launchLogo} accessibilityLabel="Avocado" />
-    {fontError && <Text style={{ color: colors.text, padding: 32 }}>Could not load the app fonts. Please restart Avocado.</Text>}
+    <Image source={require('./assets/brand/gratios-logo-white.png')} resizeMode="contain" style={styles.launchLogo} accessibilityLabel="Gratios" />
+    {fontError && <Text style={{ color: colors.text, padding: 32 }}>Could not load the app fonts. Please restart Gratios.</Text>}
   </View>;
   return <SafeAreaProvider initialMetrics={initialWindowMetrics} style={styles.safeArea} onLayout={onReady}>
     <AuthProvider><AuthenticatedApp /></AuthProvider>

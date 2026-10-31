@@ -89,10 +89,11 @@ export function AuthScreen() {
     if (pending.current) return;
     pending.current = true; setBusy(true); setMessage(null);
     try {
-      const session = await googleSignIn(gmailAccess);
+      const session = await googleSignIn(gmailAccess, calendarAccess);
       if (!active.current) return;
       if (session) {
         setPendingSession(session);
+        if (calendarAccess) await checkCalendar(session);
         if (!calendarAccess && !alertsSelected) await finish(session);
       }
       else setMessage('Choose a Google account to continue.');
@@ -115,7 +116,7 @@ export function AuthScreen() {
     <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.content}>
-        <View style={styles.brand}><Image source={require('../../assets/brand/logo.png')} style={styles.logo} resizeMode="contain" accessibilityLabel="Avocado" /><AppText style={styles.brandName}>Avocado</AppText></View>
+        <View style={styles.brand}><Image source={require('../../assets/brand/gratios-logo-black.png')} style={styles.logo} resizeMode="contain" accessibilityLabel="Gratios" /><AppText style={styles.brandName}>Gratios</AppText></View>
         {step === 'welcome' && !pendingSession && <View style={styles.hero}>
           <Image source={marketIcons.store} resizeMode="contain" style={styles.store} />
           <Image source={marketIcons.search} resizeMode="contain" style={styles.search} />
@@ -148,9 +149,9 @@ export function AuthScreen() {
           <View style={styles.features}>
             <AppText style={styles.section}>You're signed in</AppText>
             <AppText style={styles.featureTitle}>{calendarAccess ? (calendarConnected ? 'Calendar & Tasks connected' : 'Connect Calendar & Tasks') : 'Finish setting up your agents'}</AppText>
-            <AppText style={styles.body}>{calendarAccess ? 'Allow Google Calendar and Tasks access to bring your plans into Home. You can also connect later in Profile.' : 'Your preferences will be saved when you continue.'}</AppText>
+            <AppText style={styles.body}>{calendarAccess ? 'Google Calendar and Tasks access was requested with sign-in. You can also manage these connections later in Profile.' : 'Your preferences will be saved when you continue.'}</AppText>
           </View>
-          {calendarAccess && !calendarConnected && <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void connectCalendar(); }} style={styles.button}><AppText style={styles.buttonText}>{calendarLaunched ? 'Reconnect Calendar & Tasks' : 'Connect Calendar & Tasks'}</AppText></Pressable>}
+          {calendarAccess && !calendarConnected && <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void connectCalendar(); }} style={styles.button}><AppText style={styles.buttonText}>{calendarLaunched ? 'Reconnect Calendar & Tasks' : 'Retry Calendar & Tasks connection'}</AppText></Pressable>}
           {calendarAccess && calendarLaunched && !calendarConnected && <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void checkCalendar(pendingSession).catch(() => setMessage('Could not check the connection. Please retry.')); }} style={styles.retry}><AppText style={styles.retryText}>Check connection</AppText></Pressable>}
           {alertsSelected && <View style={styles.features}><AppText style={styles.featureTitle}>{alertsConnected ? 'Phone alerts enabled' : 'Phone alerts'}</AppText><AppText style={styles.body}>Get updates from your agents on this device.</AppText>{!alertsConnected && <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void connectAlerts(); }} style={styles.button}><AppText style={styles.buttonText}>Enable phone alerts</AppText></Pressable>}</View>}
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void complete(); }} style={[styles.button, calendarAccess && !calendarConnected && { backgroundColor: '#292929' }]}>{busy ? <ActivityIndicator color="#fff" /> : <AppText style={styles.buttonText}>{calendarAccess && !calendarConnected || alertsSelected && !alertsConnected ? 'Finish setup later' : 'Continue'}</AppText>}</Pressable>

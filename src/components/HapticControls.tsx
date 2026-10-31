@@ -7,7 +7,7 @@ export const HapticPressable = forwardRef<React.ComponentRef<typeof NativePressa
   return <NativePressable {...props} ref={ref} disabled={disabled} accessibilityRole={accessibilityRole} accessibilityState={accessibilityState}
     onPress={onPress ? event => {
       if (disabled || accessibilityState?.disabled) return;
-      const selection = ['tab', 'checkbox', 'radio', 'switch'].includes(accessibilityRole ?? '');
+      const selection = ['checkbox', 'radio', 'switch'].includes(accessibilityRole ?? '');
       if (accessibilityRole !== 'tab' || !accessibilityState?.selected) {
         if (selection) navigationHaptic(); else buttonPressHaptic();
       }

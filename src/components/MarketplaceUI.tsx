@@ -15,9 +15,9 @@ export function MarketArt({ image, size = 64 }: { image?: ImageReference; size?:
   const option = !image?.uri ? marketplaceArtworkOptions.find(item => item.asset === image?.asset) : undefined;
   return <Image source={option ? agentStickers[option.sticker].source : imageSource(image, 'brief')} resizeMode="contain" style={{ width: size, height: size }} accessibilityIgnoresInvertColors />;
 }
-export function MarketButton({ label, onPress, disabled, secondary, busy }: { label: string; onPress(): void; disabled?: boolean; secondary?: boolean; busy?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled || !!busy, busy: !!busy }} disabled={disabled || busy} onPress={onPress} style={({ pressed }) => [ui.button, secondary && ui.secondary, (disabled || busy) && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
-    {busy ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={[ui.buttonText, secondary && { color: '#b5c9ff' }]}>{label}</AppText>}
+export function MarketButton({ label, onPress, disabled, secondary: _secondary, busy }: { label: string; onPress(): void; disabled?: boolean; secondary?: boolean; busy?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled || !!busy, busy: !!busy }} disabled={disabled || busy} onPress={onPress} style={({ pressed }) => [ui.button, (disabled || busy) && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
+    {busy ? <ActivityIndicator color="#fff" size="small" /> : <AppText style={ui.buttonText}>{label}</AppText>}
   </Pressable>;
 }
 export function MarketRows({ items }: { items: string[] }) {
@@ -101,7 +101,7 @@ export const ui = StyleSheet.create({
   popupBody: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 14, lineHeight: 21 },
   popupContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 16 },
   modal: { flex: 1, backgroundColor: '#0d0d0d' }, toolbar: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, borderBottomWidth: 1, borderBottomColor: '#222' }, modalTitle: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 27, flex: 1, minWidth: 0 }, close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' }, link: { color: '#558dff', fontSize: 14 }, modalContent: { padding: 24, paddingBottom: 48, gap: 20 },
-  button: { minHeight: 44, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2468f5' }, secondary: { backgroundColor: '#1a2234' }, buttonText: { color: '#fff', fontFamily: fonts.semibold, fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 }, body: { color: '#a5a5a5', fontSize: 14, lineHeight: 21 }, label: { color: '#ccc', fontSize: 13, fontFamily: fonts.semibold }, input: { minHeight: 48, padding: 14, borderRadius: 14, backgroundColor: '#1b1b1b', borderWidth: 1, borderColor: '#303030', color: '#fff', fontSize: 15, lineHeight: 22 }, error: { color: '#ffb8aa', fontSize: 13, lineHeight: 19 },
+  button: { minHeight: 44, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2468f5' }, buttonText: { color: '#fff', fontFamily: fonts.semibold, fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 }, body: { color: '#a5a5a5', fontSize: 14, lineHeight: 21 }, label: { color: '#ccc', fontSize: 13, fontFamily: fonts.semibold }, input: { minHeight: 48, padding: 14, borderRadius: 14, backgroundColor: '#1b1b1b', borderWidth: 1, borderColor: '#303030', color: '#fff', fontSize: 15, lineHeight: 22 }, error: { color: '#ffb8aa', fontSize: 13, lineHeight: 19 },
   consent: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 6, minHeight: 44 }, checkbox: { width: 23, height: 23, flexShrink: 0, marginTop: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 7, borderWidth: 1, borderColor: '#555' }, artworkGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   artworkCell: { width: '33.333333%', padding: 4 },
   artworkOption: { gap: 6, alignItems: 'center' },

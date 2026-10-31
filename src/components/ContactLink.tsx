@@ -29,7 +29,7 @@ export function ContactDialog({ visible, onClose }: { visible: boolean; onClose(
       <Pressable accessibilityRole="button" accessibilityLabel="Dismiss contact information" onPress={onClose} style={StyleSheet.absoluteFill} />
       <View accessibilityViewIsModal style={styles.card}>
         <AppText accessibilityRole="header" style={styles.title}>Contact us</AppText>
-        <AppText style={styles.body}>Avocado is running on your local machine. For connection problems, check the Gateway terminal and the local setup guide.</AppText>
+        <AppText style={styles.body}>Gratios is running on your local machine. For connection problems, check the Gateway terminal and the local setup guide.</AppText>
         <Pressable accessibilityRole="button" onPress={onClose} style={styles.close}><AppText style={styles.closeText}>Got it</AppText></Pressable>
       </View>
     </View>

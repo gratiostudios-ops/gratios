@@ -78,7 +78,7 @@ export function NavigationSheet({ visible, active, onClose, onSelect, onContact 
         transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [height, 0] }) }],
       }]}>
         <View style={styles.handle} />
-        <View style={styles.sheetHeading}><AppText accessibilityRole="header" style={styles.brand}>Avocado</AppText>
+        <View style={styles.sheetHeading}><AppText accessibilityRole="header" style={styles.brand}>Gratios</AppText>
           <Pressable accessibilityRole="button" accessibilityLabel="Close navigation menu" onPress={() => close()} style={styles.closeButton}><AppText style={styles.closeText}>×</AppText></Pressable>
         </View>
         <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
