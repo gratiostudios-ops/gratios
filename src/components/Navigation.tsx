@@ -8,6 +8,7 @@ import { Icon } from './Icons';
 import NavHome from '../../assets/phosphor/nav-home.svg';
 import NavMarketplace from '../../assets/phosphor/nav-marketplace.svg';
 import NavProfile from '../../assets/phosphor/nav-profile.svg';
+import { FixedContact } from './ContactLink';
 import { AppText } from './UI';
 
 export type Destination = 'home' | 'marketplace' | 'profile';
@@ -87,10 +88,10 @@ export function NavigationSheet({ visible, active, onClose, onSelect, onContact 
             <View style={styles.destinationIcon}><Icon name={destination.id} color={active === destination.id ? '#ffffff' : '#a6a6a6'} /></View>
             <AppText style={[styles.destinationLabel, active === destination.id && { color: '#ffffff' }]}>{destination.label}</AppText>
           </Pressable>)}</View>
-          <Pressable accessibilityRole="button"  onPress={() => close(onContact)} style={({ pressed }) => [styles.contact, pressed && { opacity: 0.65 }]}><AppText style={styles.contactText}>Contact us</AppText></Pressable>
         </ScrollView>
       </Animated.View>
     </View>
+    {visible && <FixedContact />}
   </Modal>;
 }
 

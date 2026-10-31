@@ -1,6 +1,6 @@
 import type { StickerKey } from '../agent-icons';
 export type AssetKey = StickerKey |  'general-sun' | 'general-moon' | 'mail' | 'brief' | 'flight' | 'gym' | 'video' | 'avatar' | 'phone' | 'car' | 'skoda' | 'watch' | 'calendar';
-export type ImageReference = { asset: AssetKey; uri?: never } | { uri: string; asset?: never };
+export type ImageReference = { asset: AssetKey; uri?: never } | { uri: string; mediaId?: string; asset?: never } | { mediaId: string; uri?: string; asset?: never };
 export type AgentIcon = 'general' | 'flight' | 'mail' | 'gym' | 'video' | 'news' | 'brief' | 'calendar' | 'date' | 'greeting';
 export type TableText = string | { text: string; tone?: 'highlight' | 'muted' }[];
 export type Action = { id: string; label: string; message: string };
@@ -28,6 +28,8 @@ export type Agent = {
   image: ImageReference;
   document: string;
   enabled?: boolean;
+  connectorIds?: import('./connection-options').ConnectionId[];
+  missingSetup?: string[];
 };
 
 export type Finding = {

@@ -88,7 +88,7 @@ function GlassCardSurface({ item, children }: { item: MarketListing; children: R
   const target = useRef<React.ComponentRef<typeof View>>(null);
   return <>
     <BlurTargetView ref={target} collapsable={false} style={styles.cardArtwork}>
-      <Image pointerEvents="none" source={marketplaceCover(item.id, item.artwork)} resizeMode="cover" fadeDuration={0} style={styles.coverImage} />
+      <Image pointerEvents="none" source={item.cover?.uri ? { uri: item.cover.uri } : marketplaceCover(item.id, item.artwork)} resizeMode="cover" fadeDuration={0} style={styles.coverImage} />
     </BlurTargetView>
     <View style={styles.caption}>
       <BlurView pointerEvents="none" blurTarget={target} blurMethod="dimezisBlurViewSdk31Plus" intensity={30} tint="default" style={styles.glassLayer} />
@@ -100,7 +100,7 @@ function GlassCardSurface({ item, children }: { item: MarketListing; children: R
   </>;
 }
 const styles = StyleSheet.create({
-  caughtUp: { backgroundColor: '#111111' },
+  caughtUp: { backgroundColor: '#111111', borderWidth: 0 },
   glassLayer: { ...StyleSheet.absoluteFill, borderRadius: 21 },
   cardArtwork: { ...StyleSheet.absoluteFill, borderRadius: 44, borderCurve: 'continuous', overflow: 'hidden' },
   coverImage: { width: '100%', height: '100%', transform: [{ scale: 1.05 }] },

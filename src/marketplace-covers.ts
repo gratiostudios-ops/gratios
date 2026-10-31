@@ -28,7 +28,7 @@ const cardCovers = {
   'delivery-tracker': marketplaceCovers.airplane,
   'smart-shopping': marketplaceCovers.home,
 };
-export function marketplaceCover(id: string, artwork?: { asset: string }) {
+export function marketplaceCover(id: string, artwork?: { asset?: string }) {
   const saved = { brief: marketplaceCovers.document, calendar: marketplaceCovers.calendar, flight: marketplaceCovers.airplane, video: marketplaceCovers.video, mail: marketplaceCovers.chat, gym: marketplaceCovers.target };
   return cardCovers[id as keyof typeof cardCovers] ?? saved[artwork?.asset as keyof typeof saved] ?? marketplaceCovers.parcel;
 }

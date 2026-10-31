@@ -1,15 +1,17 @@
 import { HapticPressable as Pressable } from '../components/HapticControls';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { gateway, demoMode } from '../auth/Auth';
 import { useAppData } from '../data/AppData';
 import { useMarketplace } from '../data/Marketplace';
 import type { DraftResult, MarketVersion, OwnListing } from '../data/marketplace';
 import { PhosphorIcon } from '../components/PhosphorIcon';
-import { marketplaceCover } from '../marketplace-covers';
-import { marketplaceArtworkOptions, toolLabel } from '../data/marketplace';
+import { AgentCreatorForm } from '../components/AgentCreatorForm';
+import { AgentIconPicker } from '../components/AgentIconPicker';
+import { MediaPicker } from '../components/MediaPicker';
+import { toolLabel } from '../data/marketplace';
 import { AppText } from '../components/UI';
-import { Consent, MarketButton, MarketError, MarketField, MarketModal, MarketDisclosure, PublishingArtworkPicker, ui } from '../components/MarketplaceUI';
+import { Consent, MarketArt, MarketButton, MarketError, MarketField, MarketModal, MarketDisclosure, ui } from '../components/MarketplaceUI';
 
 export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClose(): void }) {
   const { api, installations, reload } = useMarketplace();
@@ -21,6 +23,8 @@ export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClo
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [reviewed, setReviewed] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formBusy, setFormBusy] = useState(false);
   useEffect(() => {
     let active = true;
     if (listing) {
@@ -39,29 +43,37 @@ export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClo
   const select = (id: string) => { void run(async () => { const value = await api.createDraft(id); setResult(value); setDraft(value.draft); }); };
   const save = async () => {
     if (!draft || !result) return;
-    const saved = await api.saveDraft(result.listing.id, { name: draft.name.trim(), description: draft.description.trim(), instructions: draft.instructions.trim(), artwork: draft.artwork, requiredTools: draft.required_tools });
+    const saved = await api.saveDraft(result.listing.id, { name: draft.name.trim(), description: draft.description.trim(), instructions: draft.instructions.trim(), artwork: draft.artwork, cover: draft.cover ?? null, requiredTools: draft.required_tools });
     setDraft(saved.draft); return saved.draft;
   };
   const installedIds = new Set(installations.map(item => item.agent_id));
   const available = sources.filter(agent => !installedIds.has(agent.id));
-  return <MarketModal compact title={listing ? 'Manage public agent' : 'Publish an agent'} onClose={onClose} busy={busy}>
-    <AppText style={ui.body}>Share an agent you already use. Your personal preferences, connected accounts, and conversations stay private.</AppText>
-    {!draft && !busy && <MarketDisclosure title="Choose a private agent" summary="Select an agent to publish" defaultOpen>
+  return <MarketModal compact title={creating ? 'Create an agent' : listing ? 'Manage public agent' : 'Publish an agent'} onClose={onClose} busy={busy || formBusy}>
+    {!creating && <AppText style={ui.body}>Share an agent you already use. Your personal preferences, connected accounts, and conversations stay private.</AppText>}
+    {creating && <AgentCreatorForm onBusyChange={setFormBusy} onCreated={async agent => { setSources(previous => previous.some(item => item.id === agent.id) ? previous : [...previous, { id: agent.id, name: agent.name, role: 'agent' }]); setCreating(false); await run(async () => { const value = await api.createDraft(agent.id); setResult(value); setDraft(value.draft); }); }} />}
+    {!draft && !creating && <MarketButton label="Create new agent" secondary disabled={busy || formBusy || demoMode} onPress={() => setCreating(true)} />}
+    {creating && <MarketButton label="Choose an existing agent" secondary disabled={formBusy} onPress={() => setCreating(false)} />}
+    {!draft && !busy && !creating && <MarketDisclosure title="Choose a private agent" summary="Select an agent to publish" defaultOpen>
       {available.map(agent => <Pressable key={agent.id} accessibilityRole="button" disabled={demoMode} onPress={() => select(agent.id)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#2b2b2b' }}><AppText style={[ui.disclosureTitle, { flex: 1 }]}>{agent.name}</AppText><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><AppText style={ui.link}>Choose</AppText><PhosphorIcon name="arrow-right" size={18} color="#558dff" /></View></Pressable>)}
       {!available.length && <AppText style={ui.body}>No eligible private agents yet. Installed marketplace agents cannot be republished.</AppText>}
       {demoMode && <AppText style={ui.body}>Sign in to publish an agent.</AppText>}
     </MarketDisclosure>}
     {busy && !draft && <ActivityIndicator color="#558dff" />}
     {draft && <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Image source={marketplaceCover('', draft.artwork)} style={{ width: 48, height: 48, borderRadius: 12 }} resizeMode="cover" /><View style={{ flex: 1 }}><AppText style={ui.disclosureTitle}>{draft.name}</AppText><AppText style={ui.disclosureSummary}>{'Version ' + draft.version_number}</AppText></View></View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><MarketArt image={draft.artwork} size={48} /><View style={{ flex: 1 }}><AppText style={ui.disclosureTitle}>{draft.name}</AppText><AppText style={ui.disclosureSummary}>{'Version ' + draft.version_number}</AppText></View></View>
       <MarketDisclosure title="Agent name" summary={draft.name} defaultOpen>
         <MarketField label="Name" value={draft.name} maxLength={200} onChange={name => { setDraft({ ...draft, name }); setReviewed(false); }} />
       </MarketDisclosure>
       <MarketDisclosure title="Description" summary={draft.description || 'Describe what your agent does'}>
         <MarketField label="Description" value={draft.description} maxLength={2000} multiline onChange={description => { setDraft({ ...draft, description }); setReviewed(false); }} />
       </MarketDisclosure>
-      <MarketDisclosure title="Artwork" summary={marketplaceArtworkOptions.find(option => option.asset === draft.artwork.asset)?.label ?? 'Choose a cover'}>
-        <PublishingArtworkPicker selected={draft.artwork.asset} onSelect={asset => { setDraft({ ...draft, artwork: { asset } }); setReviewed(false); }} />
+      <MarketDisclosure title="Agent icon" summary={draft.artwork.mediaId ? 'Uploaded icon' : 'Choose an existing icon or upload'}>
+        <AgentIconPicker value={draft.artwork} onChange={artwork => { setDraft({ ...draft, artwork }); setReviewed(false); }} disabled={busy} onBusyChange={setFormBusy} />
+      </MarketDisclosure>
+      <MarketDisclosure title="Carousel image" summary={draft.cover ? 'Uploaded square cover' : 'Using existing cover'}>
+        <AppText style={ui.disclosureSummary}>Optional. Upload an image, crop it square, and we’ll resize it for the card.</AppText>
+        <MediaPicker kind="cover" value={draft.cover} disabled={busy} onBusyChange={setFormBusy} onChange={cover => { setDraft({ ...draft, cover }); setReviewed(false); }} />
+        {draft.cover && <MarketButton label="Use existing cover" secondary disabled={busy || formBusy} onPress={() => { setDraft({ ...draft, cover: null }); setReviewed(false); }} />}
       </MarketDisclosure>
       <MarketDisclosure title="Public instructions" summary={draft.instructions || 'Explain how your agent works'}>
         <MarketField label="Instructions" value={draft.instructions} multiline onChange={instructions => { setDraft({ ...draft, instructions }); setReviewed(false); }} />
@@ -73,7 +85,7 @@ export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClo
       <MarketDisclosure title="Privacy review" summary={reviewed ? 'Reviewed' : 'Review before publishing'}>
         <Consent checked={reviewed} onChange={setReviewed} label="I reviewed the public instructions and removed personal information and secrets." />
       </MarketDisclosure>
-      <MarketButton label={'Publish version ' + draft.version_number} busy={busy} disabled={!reviewed || !draft.name.trim() || !draft.instructions.trim()} onPress={() => { void run(async () => { const saved = await save(); if (saved && result) { await api.publish(result.listing.id, saved.id); void reload().catch(() => {}); onClose(); } }); }} />
+      <MarketButton label={'Publish version ' + draft.version_number} busy={busy} disabled={formBusy || !reviewed || !draft.name.trim() || !draft.instructions.trim()} onPress={() => { void run(async () => { const saved = await save(); if (saved && result) { await api.publish(result.listing.id, saved.id); void reload().catch(() => {}); onClose(); } }); }} />
       {listing?.status === 'published' && <MarketButton label="Unpublish listing" secondary busy={busy} onPress={() => { void run(async () => { await api.unpublish(listing.id); void reload().catch(() => {}); onClose(); }); }} />}
     </>}
     <MarketError text={error} />

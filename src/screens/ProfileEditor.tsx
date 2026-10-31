@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInpu
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gateway } from '../auth/Auth';
 import { useAppData } from '../data/AppData';
+import { FixedContact } from '../components/ContactLink';
 import { AppText } from '../components/UI';
 import { colors, fonts } from '../theme';
 
@@ -29,7 +30,7 @@ export function ProfileEditor({ preferencesOnly = false, onClose }: { preference
     finally { setSaving(false); }
   };
   return <Modal animationType="slide" onRequestClose={onClose}>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: Math.max(insets.top, 20), paddingBottom: insets.bottom }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: insets.top + 48, paddingBottom: insets.bottom }]}>
       <View style={styles.toolbar}><Pressable accessibilityRole="button" onPress={onClose} style={styles.button}><AppText style={styles.link}>Cancel</AppText></Pressable>
         <AppText accessibilityRole="header" style={styles.title}>{preferencesOnly ? 'Preferences' : 'About you'}</AppText>
         <Pressable accessibilityRole="button" disabled={saving} onPress={() => { void save(); }} style={styles.button}><AppText style={styles.link}>{saving ? 'Saving…' : 'Save'}</AppText></Pressable></View>
@@ -43,6 +44,7 @@ export function ProfileEditor({ preferencesOnly = false, onClose }: { preference
         {error && <AppText accessibilityLiveRegion="polite" style={styles.error}>{error}</AppText>}
       </ScrollView>
     </KeyboardAvoidingView>
+    <FixedContact />
   </Modal>;
 }
 const styles = StyleSheet.create({

@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, StyleSheet, TextInput, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAppData } from '../data/AppData';
+import { FixedContact } from '../components/ContactLink';
 import { AppText } from '../components/UI';
 import { colors, fonts } from '../theme';
 
@@ -21,7 +22,7 @@ export function MarkdownEditor({ documentId, title, onClose, readOnly = false }:
   };
   const insets = useSafeAreaInsets();
   return <Modal animationType="slide" onRequestClose={onClose}>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: Math.max(20, insets.top), paddingBottom: insets.bottom }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: insets.top + 48, paddingBottom: insets.bottom }]}>
       <StatusBar hidden={false} style="light" />
       <View style={styles.toolbar}>
         <Pressable accessibilityRole="button" onPress={onClose} style={styles.button}><AppText style={styles.cancel}>{readOnly ? 'Close' : 'Cancel'}</AppText></Pressable>
@@ -33,6 +34,7 @@ export function MarkdownEditor({ documentId, title, onClose, readOnly = false }:
         style={styles.editor} selectionColor={colors.blue} placeholder="# Your instructions" placeholderTextColor={colors.faint} />
       <AppText accessibilityLiveRegion="polite" style={styles.hint}>{error ?? (readOnly ? 'Marketplace instructions · Read-only' : 'Markdown · Save to update your instructions')}</AppText>
     </KeyboardAvoidingView>
+    <FixedContact />
   </Modal>;
 }
 const styles = StyleSheet.create({

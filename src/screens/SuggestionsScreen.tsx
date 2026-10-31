@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
 import type { FeedItem } from '../data/types';
 import { SafeImage } from '../components/SafeImage';
+import { FixedContact } from '../components/ContactLink';
 import { AppText } from '../components/UI';
 import { type MenuActions } from '../components/Navigation';
 import { colors, fonts } from '../theme';
@@ -45,8 +46,9 @@ export function SuggestionsScreen(menuActions: MenuActions) {
       <LinearGradient pointerEvents="none" colors={['#080808', '#080808e5', '#080808cc', '#08080895', '#08080800']} locations={[0, 0.201923, 0.427885, 0.605769, 1]} style={styles.topFade} />
       <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d95', '#0d0d0dcc', '#0d0d0de5', '#0d0d0d']} locations={[0, 0.394231, 0.572115, 0.798077, 1]} style={styles.bottomFade} />
     </View>
+    <FixedContact />
     <Modal visible={selected !== null} animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setSelected(null)}>
-      <View style={[styles.detail, { paddingTop: Math.max(20, insets.top), paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <View style={[styles.detail, { paddingTop: insets.top + 48, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
         {selected && <StatusBar hidden={false} style="light" />}
         <View style={styles.detailHeader}><View style={styles.headerContent}>
           <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={styles.back}><AppText style={styles.backText}>← Suggestions</AppText></Pressable>
@@ -74,6 +76,7 @@ export function SuggestionsScreen(menuActions: MenuActions) {
           </View>}
         </ScrollView>}
       </View>
+      {selected && <FixedContact />}
     </Modal>
   </View>;
 }

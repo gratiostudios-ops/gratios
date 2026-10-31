@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ContactLink } from '../components/ContactLink';
 import { MarketplaceDeck } from '../components/MarketplaceDeck';
 import { MarketButton, MarketModal, ui } from '../components/MarketplaceUI';
 import { AppText } from '../components/UI';
@@ -64,7 +63,7 @@ export function MarketplaceScreen({ isActive, onContact }: { isActive: boolean; 
   return <View style={styles.screen}>
     <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
     <ScrollView refreshControl={<RefreshControl refreshing={loading && !!catalog.length && !query} tintColor="#558dff" onRefresh={() => { setRetry(value => value + 1); void reload().catch(() => {}); }} />} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Math.max(insets.top, 20), paddingBottom: 30 }}>
-      <View style={{ paddingHorizontal: 28 }}><ContactLink onPress={onContact} /></View>
+      <View style={{ height: 40 }} />
       <View style={styles.hero}>
         <Image source={marketIcons.store} resizeMode="contain" style={styles.robot} />
         <Image source={marketIcons.search} resizeMode="contain" style={styles.searchArt} />

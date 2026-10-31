@@ -77,15 +77,23 @@ test('API failures are propagated for inline handling', async () => {
   await assert.rejects(client.install('listing', [], ''), error => error === failure);
 });
 
-test('publishing accepts exactly the backend artwork keys and rejects unsupported sticker payloads', async () => {
+test('publishing accepts bundled icons and media IDs but never arbitrary image URLs or invented stickers', async () => {
   const { marketplaceArtworkOptions, isMarketplaceArtwork } = await import('../src/data/marketplace');
-  assert.deepEqual(marketplaceArtworkOptions.map(item => item.asset).sort(), ['brief', 'calendar', 'flight', 'gym', 'mail', 'video']);
+  const { agentIconKeys } = await import('../src/data/agent-icon-keys');
   for (const option of marketplaceArtworkOptions) assert.equal(isMarketplaceArtwork({ asset: option.asset }), true);
-  assert.equal(isMarketplaceArtwork({ asset: 'sticker-robot' }), false);
+  for (const key of agentIconKeys) assert.equal(isMarketplaceArtwork({ asset: key }), true);
+  assert.equal(isMarketplaceArtwork({ asset: 'sticker-does-not-exist' }), false);
+  assert.equal(isMarketplaceArtwork({ uri: 'https://example.invalid/image.png' }), false);
   assert.equal(isMarketplaceArtwork({ asset: 'flight', uri: 'https://example.invalid/image.png' }), false);
+  assert.equal(isMarketplaceArtwork({ mediaId: 'not-an-id' }), false);
   const { client, calls } = fixture();
-  await assert.rejects(client.saveDraft('listing', { name: 'Agent', description: '', instructions: 'Help', requiredTools: [], artwork: { asset: 'sticker-robot' } } as unknown as import('../src/data/marketplace').DraftChanges), /supported publishing artworks/);
-  assert.equal(calls.length, 0, 'unsupported artwork is rejected before submitting a request');
+  const mediaId = 'a0000000-0000-4000-8000-000000000001';
+  await client.saveDraft('listing', { name: 'Agent', description: '', instructions: 'Help', requiredTools: [], artwork: { mediaId, uri: 'https://example.invalid/signed' }, cover: { mediaId, uri: 'https://example.invalid/cover' } });
+  const body = JSON.parse(String(calls[0].init?.body));
+  assert.deepEqual(body.artwork, { mediaId });
+  assert.deepEqual(body.cover, { mediaId });
+  await assert.rejects(client.saveDraft('listing', { name: 'Agent', description: '', instructions: 'Help', requiredTools: [], artwork: { asset: 'sticker-does-not-exist' } } as unknown as import('../src/data/marketplace').DraftChanges), /supported publishing artworks/);
+  assert.equal(calls.length, 1, 'invalid artwork is rejected before submitting a request');
 });
 
 test('carousel uses only the saved publishing choice, with no invented cover for unmatched assets', async () => {
@@ -98,12 +106,9 @@ test('carousel uses only the saved publishing choice, with no invented cover for
   assert.equal(carouselTheme({ artwork: { asset: 'gym' } }), undefined);
 });
 
-test('publishing artwork choices match the completed backend allowlist', { skip: !process.env.AVOCADO_MARKETPLACE_BACKEND_FILE }, async () => {
+test('every bundled publishing icon has a source asset', async () => {
   const { readFile } = await import('node:fs/promises');
-  const { marketplaceArtworkOptions } = await import('../src/data/marketplace');
-  const source = await readFile(process.env.AVOCADO_MARKETPLACE_BACKEND_FILE!, 'utf8');
-  const match = source.match(/const assets = new Set\(\[([^\]]*)\]\)/);
-  assert.ok(match, 'backend declares its accepted artwork assets');
-  const serverKeys = [...match[1].matchAll(/'([^']+)'/g)].map(value => value[1]).sort();
-  assert.deepEqual(marketplaceArtworkOptions.map(item => item.asset).sort(), serverKeys);
+  const { agentIconKeys } = await import('../src/data/agent-icon-keys');
+  const source = await readFile(new URL('../src/agent-icons.ts', import.meta.url), 'utf8');
+  for (const key of agentIconKeys) assert.ok(source.includes("'" + key + "':"));
 });

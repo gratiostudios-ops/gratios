@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../data/AppData';
-import { ContactLink } from '../components/ContactLink';
 import { SafeImage } from '../components/SafeImage';
 import { AppText } from '../components/UI';
 import type { MenuActions } from '../components/Navigation';
@@ -34,7 +33,7 @@ export function ProfileScreen({ onContact }: MenuActions & { onContact(): void }
 
   return <View style={styles.screen}>
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}>
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}><ContactLink onPress={onContact} /></View>
+      <View style={{ height: insets.top + 48 }} />
       <View style={[styles.hero, { paddingTop: Math.max(84, insets.top + 30) + 25 - (insets.top + 48) }]}>
         <SafeImage image={profile.avatar} fallback="avatar" style={styles.avatar} resizeMode="cover" accessibilityLabel={`${profile.name}'s avatar`} />
         <View style={styles.identity}><AppText style={styles.name}>{profile.name}</AppText><AppText style={styles.email}>{profile.email}</AppText></View>

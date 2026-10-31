@@ -13,7 +13,6 @@ import { useTaskStack } from '../data/useTaskCard';
 import type { Action, AgentIcon, Finding, ImageReference, Reply, Task } from '../data/types';
 import { bottomTabHeight, colors, fonts, layout } from '../theme';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
-import { ContactLink } from '../components/ContactLink';
 import { Icon } from '../components/Icons';
 import { Content } from '../components/Content';
 import { TaskBannerStack } from '../components/TaskBannerStack';
@@ -202,16 +201,15 @@ function Figure({ image, heroHeight, hasTasks }: { image: ImageReference; heroHe
   </View>;
 }
 
-function CanvasPage({ finding, width, height, hasTasks, onAction, onContact, scrollPositions }: {
+function CanvasPage({ finding, width, height, hasTasks, onAction, scrollPositions }: {
   finding: Finding; width: number; height: number; hasTasks: boolean;
-  onAction: (message: string) => void; onContact(): void; scrollPositions: Map<string, number>;
+  onAction: (message: string) => void; scrollPositions: Map<string, number>;
 }) {
   const insets = useSafeAreaInsets();
   const heroHeight = canvasHeroHeight(height, insets.top);
   return <ScrollView style={{ width, height }} contentContainerStyle={styles.canvasContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" accessibilityLabel={finding.title}
     contentOffset={{ x: 0, y: scrollPositions.get(finding.id) ?? 0 }} scrollEventThrottle={32}
     onScroll={({ nativeEvent }) => scrollPositions.set(finding.id, nativeEvent.contentOffset.y)}>
-    <View style={{ position: 'absolute', right: layout.gutter, top: insets.top + 8, zIndex: 1 }}><ContactLink onPress={onContact} /></View>
     <Figure image={finding.image} heroHeight={heroHeight} hasTasks={hasTasks} />
     <AppText accessibilityRole="header" style={styles.canvasTitle}>{finding.title}</AppText>
     <View style={{ marginTop: finding.blocks[0]?.type === 'table' ? 24 : 32 }}>
@@ -408,9 +406,8 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
           }}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60, minimumViewTime: 0 }} keyboardShouldPersistTaps="handled"
           getItemLayout={(_, index) => ({ length: canvasSize.width, offset: index * canvasSize.width, index })}
-          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} onContact={onContact} />}
+          renderItem={({ item }) => <CanvasPage finding={{ ...item, image: cardImage(item.image, iconFor(item)) }} width={canvasSize.width} height={canvasSize.height} hasTasks={hasTasks} scrollPositions={scrollPositions} onAction={sendText} />}
         /> : <ScrollView contentContainerStyle={[styles.empty, { flexGrow: 1 }]} showsVerticalScrollIndicator={false}>
-          <View style={{ position: 'absolute', top: insets.top + 8, right: layout.gutter }}><ContactLink onPress={onContact} /></View>
           <View style={styles.welcomeCard} accessibilityLabel="Welcome card">
             <View style={styles.welcomeIcon}><Icon name="greeting" color="#b8cfff" /></View>
             <AppText accessibilityRole="header" style={styles.emptyTitle}>Hey, glad you’re here.</AppText>
@@ -418,7 +415,8 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
 What’s on your mind?</AppText>
           </View>
         </ScrollView>}
-        <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} style={styles.canvasFade} />
+        <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasTopFade} />
+        <LinearGradient pointerEvents="none" colors={['#0d0d0d00', '#0d0d0d']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasFade} />
         {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: insets.top + 40, height: 8 + 14 + 8 + 45 / 2 }]} />}
         {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top + 40, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
           onLayout={({ nativeEvent: { layout: chrome } }) => setChromeHeight(previous => previous === chrome.height ? previous : chrome.height)}>
@@ -497,6 +495,7 @@ const styles = StyleSheet.create({
   canvasContent: { paddingHorizontal: layout.gutter, paddingTop: 10, paddingBottom: 28 },
   canvasTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 26, color: colors.text, textAlign: 'center', marginRight: 7 },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 252 },
+  canvasTopFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 28 },
   canvasFade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 28 },
   bannerBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#000000' },
   topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },

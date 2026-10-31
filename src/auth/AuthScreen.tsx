@@ -4,6 +4,7 @@ import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Linking, Plat
 import { LinearGradient } from 'expo-linear-gradient';
 import { marketIcons } from '../data/local-marketplace';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FixedContact } from '../components/ContactLink';
 import { AppText } from '../components/UI';
 import { colors, fonts } from '../theme';
 import { gateway, useAuth } from './Auth';
@@ -112,7 +113,7 @@ export function AuthScreen() {
   }, [pendingSession, calendarAccess]);
   return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.content}>
         <View style={styles.brand}><Image source={require('../../assets/brand/logo.png')} style={styles.logo} resizeMode="contain" accessibilityLabel="Avocado" /><AppText style={styles.brandName}>Avocado</AppText></View>
         {step === 'welcome' && !pendingSession && <View style={styles.hero}>
@@ -158,6 +159,7 @@ export function AuthScreen() {
         <AppText style={styles.footnote}>Your connected accounts and conversations stay private.</AppText>
       </View>
     </ScrollView>
+    <FixedContact />
   </KeyboardAvoidingView>;
 }
 const styles = StyleSheet.create({

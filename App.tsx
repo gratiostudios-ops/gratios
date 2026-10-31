@@ -1,6 +1,5 @@
-import { HapticPressable as Pressable } from './src/components/HapticControls';
 import React, { useCallback, useEffect, useState } from 'react';
-import { BackHandler, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,13 +17,14 @@ import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_900Black } from '@expo-google-fonts/inter/900Black';
 import { AppDataProvider } from './src/data/AppData';
 import { NavigationSheet, BottomNavigation, type Destination } from './src/components/Navigation';
+import { ContactDialog, FixedContact } from './src/components/ContactLink';
 import { TabPager } from './src/components/TabPager';
 import { AppText } from './src/components/UI';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { MarketplaceScreen } from './src/screens/MarketplaceScreen';
 import { MarketplaceProvider } from './src/data/Marketplace';
-import { colors, fonts } from './src/theme';
+import { colors } from './src/theme';
 import { AuthProvider, useAuth } from './src/auth/Auth';
 import { AuthScreen } from './src/auth/AuthScreen';
 
@@ -73,19 +73,14 @@ function Shell() {
     </View>}
     {!keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
     <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={() => setContact(true)} />
-    <Modal visible={contact} transparent animationType="fade" onRequestClose={() => setContact(false)}>
-      <View style={styles.scrim}><View style={styles.contactCard}>
-        <AppText accessibilityRole="header" style={styles.contactTitle}>Contact us</AppText>
-        <AppText style={styles.contactBody}>Avocado is running on your local machine. For connection problems, check the Gateway terminal and the local setup guide.</AppText>
-        <Pressable accessibilityRole="button" onPress={() => setContact(false)} style={styles.close}><AppText style={styles.closeText}>Got it</AppText></Pressable>
-      </View></View>
-    </Modal>
+    <FixedContact onPress={() => setContact(true)} />
+    <ContactDialog visible={contact} onClose={() => setContact(false)} />
   </KeyboardAvoidingView>;
 }
 
 function AuthenticatedApp() {
   const auth = useAuth();
-  if (!auth.ready) return <View style={styles.loading}><AppText>Restoring your session…</AppText></View>;
+  if (!auth.ready) return <View style={styles.loading}><AppText>Restoring your session…</AppText><FixedContact /></View>;
   if (!auth.signedIn) return <AuthScreen />;
   return <AppDataProvider key={auth.identity}><MarketplaceProvider><Shell /></MarketplaceProvider></AppDataProvider>;
 }
@@ -119,10 +114,4 @@ const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.background, alignSelf: 'stretch', overflow: 'hidden' },
   content: { flex: 1, minHeight: 0 },
   statusBarFade: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 },
-  scrim: { flex: 1, backgroundColor: '#000000aa', alignItems: 'center', justifyContent: 'center', padding: 28 },
-  contactCard: { width: '100%', maxWidth: 360, padding: 26, backgroundColor: colors.surface, borderRadius: 18, gap: 18 },
-  contactTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29 },
-  contactBody: { color: colors.body, lineHeight: 21 },
-  close: { minHeight: 40, borderRadius: 22, backgroundColor: colors.blue, justifyContent: 'center', alignItems: 'center' },
-  closeText: { fontFamily: fonts.semibold, color: colors.onBlue },
 });

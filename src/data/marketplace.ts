@@ -1,3 +1,5 @@
+import { agentIconKeys } from './agent-icon-keys';
+import type { StickerKey } from '../agent-icons';
 export const marketplaceArtworkOptions = [
   { asset: 'brief', label: 'Notes', sticker: 'sticker-notes' },
   { asset: 'calendar', label: 'Calendar', sticker: 'sticker-calendar' },
@@ -6,20 +8,25 @@ export const marketplaceArtworkOptions = [
   { asset: 'mail', label: 'Email', sticker: 'sticker-email' },
   { asset: 'gym', label: 'Fitness', sticker: 'sticker-fitness' },
 ] as const;
-export type MarketplaceArtworkKey = typeof marketplaceArtworkOptions[number]['asset'];
-export type MarketplaceArtwork = { asset: MarketplaceArtworkKey };
+export type MarketplaceArtworkKey = typeof marketplaceArtworkOptions[number]['asset'] | StickerKey;
+export type MarketplaceArtwork = { asset: MarketplaceArtworkKey; mediaId?: never; uri?: never } | { mediaId: string; uri?: string; asset?: never };
+export type MarketplaceCover = { mediaId: string; uri?: string; asset?: never };
 export function isMarketplaceArtwork(value: unknown): value is MarketplaceArtwork {
-  return !!value && typeof value === 'object' && Object.keys(value).length === 1 && marketplaceArtworkOptions.some(option => option.asset === (value as { asset?: unknown }).asset);
+  if (!value || typeof value !== 'object') return false;
+  const image = value as { asset?: unknown; mediaId?: unknown; uri?: unknown };
+  const keys = Object.keys(value);
+  if (typeof image.mediaId === 'string') return /^[0-9a-f-]{36}$/i.test(image.mediaId) && keys.every(key => ['mediaId', 'uri'].includes(key));
+  return keys.length === 1 && typeof image.asset === 'string' && (marketplaceArtworkOptions.some(option => option.asset === image.asset) || agentIconKeys.some(key => key === image.asset));
 }
 
 export type MarketVersion = {
   id: string; version_number: number; name: string; description: string; artwork: MarketplaceArtwork;
-  instructions: string; required_tools: string[]; published_at: string | null;
+  cover?: MarketplaceCover | null; instructions: string; required_tools: string[]; published_at: string | null;
 };
 export type MarketListing = {
   id: string; name: string; description: string; artwork: MarketplaceArtwork;
   creator_user_id: string | null; latest_published_version_id: string | null;
-  install_count?: number; featured_order?: number | null;
+  cover?: MarketplaceCover | null; install_count?: number; featured_order?: number | null;
 };
 export type CreatorListing = MarketListing & { source_agent_id: string; status: 'draft' | 'published' | 'unpublished' };
 export type OwnListing = CreatorListing & { versions: MarketVersion[] };
@@ -32,7 +39,7 @@ export type InstallResult = { agentId: string; installationId: string; versionId
 export type UpdateResult = SetupResult & { installationId: string; versionId: string };
 export type MarketDetail = { listing: MarketListing; versions: MarketVersion[] };
 export type DraftResult = { listing: CreatorListing; draft: MarketVersion };
-export type DraftChanges = Pick<MarketVersion, 'name' | 'description' | 'artwork' | 'instructions'> & { requiredTools: string[] };
+export type DraftChanges = Pick<MarketVersion, 'name' | 'description' | 'artwork' | 'instructions'> & { requiredTools: string[]; cover?: MarketplaceCover | null };
 export type MarketTransport = { request<T>(path: string, init?: RequestInit): Promise<T> };
 const root = '/gateway/marketplace';
 const segment = (value: string) => encodeURIComponent(value);
@@ -47,7 +54,7 @@ export function createMarketplaceClient(transport: MarketTransport) {
     nextDraft: (id: string) => mutate<{ draft: MarketVersion }>('/' + segment(id) + '/draft', 'POST', {}),
     saveDraft: async (id: string, changes: DraftChanges) => {
       if (!isMarketplaceArtwork(changes.artwork)) throw new Error('Choose one of the supported publishing artworks.');
-      return mutate<{ draft: MarketVersion }>('/' + segment(id) + '/draft', 'PATCH', changes);
+      return mutate<{ draft: MarketVersion }>('/' + segment(id) + '/draft', 'PATCH', { ...changes, artwork: changes.artwork.mediaId ? { mediaId: changes.artwork.mediaId } : changes.artwork, ...(changes.cover === undefined ? {} : { cover: changes.cover ? { mediaId: changes.cover.mediaId } : null }) });
     },
     publish: (id: string, versionId: string) => mutate('/' + segment(id) + '/publish', 'POST', { versionId }),
     unpublish: (id: string) => mutate('/' + segment(id) + '/unpublish', 'POST', {}),
