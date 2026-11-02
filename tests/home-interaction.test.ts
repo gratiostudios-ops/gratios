@@ -32,3 +32,13 @@ test('featured choice is separate from the newest-first list and stale/legacy sn
   assert.deepEqual(homeFindings({tasks:[],findings:[]}),{featured:null,others:[]});
   assert.equal(findingPreview({...cards[0],blocks:[{id:'p',type:'paragraph',text:'Useful detail'}]}),'Useful detail');
 });
+
+
+test('one entry per agent, including agents without updates',()=>{
+  const cards=[{id:'latest',agentId:'email'},{id:'older',agentId:'email'},{id:'calendar-card',agentId:'calendar'}] as Finding[];
+  const agents=[{id:'email',name:'Email'},{id:'calendar',name:'Calendar'},{id:'greetings',name:'Greetings'},{id:'disabled',name:'Disabled',enabled:false}] as import('../src/data/types').Agent[];
+  const result=homeFindings({tasks:[],findings:cards,featuredFindingId:'older'},agents);
+  assert.equal(result.featured?.id,'older');
+  assert.deepEqual(result.others.map(card=>card.agentId),['calendar','greetings']);
+  assert.equal(findingPreview(result.others[1]),'No updates yet.');
+});

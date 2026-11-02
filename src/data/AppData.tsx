@@ -193,7 +193,7 @@ function useData(source: DataSource) {
   }, [source]);
   const seenInFlight = useRef(new Set<string>());
   const markCardSeen = useCallback(async (id: string) => {
-    if (!source.markCardSeen || seenInFlight.current.has(id)) return;
+    if (id.startsWith('agent:') || !source.markCardSeen || seenInFlight.current.has(id)) return;
     const card = data.snapshot.findings.find(item => item.id === id);
     if (!card || card.firstSeenAt) return;
     seenInFlight.current.add(id);
@@ -203,18 +203,6 @@ function useData(source: DataSource) {
         findings: previous.snapshot.findings.map(item => item.id === id ? { ...item, ...times } : item) } }));
     } finally { seenInFlight.current.delete(id); }
   }, [source, data.snapshot.findings]);
-  useEffect(() => {
-    const expire = () => setData(previous => {
-      const findings = previous.snapshot.findings.filter((card, index) => index < 4 || !card.expiresAt || Date.parse(card.expiresAt) > Date.now());
-      return findings.length === previous.snapshot.findings.length ? previous : { ...previous, snapshot: { ...previous.snapshot, findings } };
-    });
-    expire();
-    const now = Date.now();
-    const times = data.snapshot.findings.slice(4).flatMap(card => card.expiresAt ? [Date.parse(card.expiresAt)] : []).filter(time => Number.isFinite(time) && time > now);
-    const timer = times.length ? setTimeout(expire, Math.max(0, Math.min(...times) - Date.now())) : undefined;
-    const subscription = AppState.addEventListener('change', state => { if (state === 'active') expire(); });
-    return () => { if (timer) clearTimeout(timer); subscription.remove(); };
-  }, [data.snapshot.findings]);
   useEffect(() => {
     if (demoMode || Platform.OS === 'web') return;
     const controller = new AbortController();

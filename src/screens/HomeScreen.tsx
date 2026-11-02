@@ -1,3 +1,4 @@
+import { EmailLink } from '../components/EmailLink';
 import { HapticPressable as Pressable } from '../components/HapticControls';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,6 +15,7 @@ import type { Action, Finding, Reply, Task } from '../data/types';
 import { bottomTabHeight, colors, fonts, layout } from '../theme';
 import { ActionChip, AppText, TypingIndicator } from '../components/UI';
 import { Icon } from '../components/Icons';
+import { AgentPill } from '../components/AgentPill';
 import { FindingContent } from '../components/FindingContent';
 import { TaskBannerStack } from '../components/TaskBannerStack';
 import { type MenuActions } from '../components/Navigation';
@@ -198,7 +200,7 @@ export function Composer({ value, setValue, onSend, onCancel, running, keyboardA
   </View>;
 }
 
-export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityChange, onOpenFinding, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void; onContact(): void; onBannerVisibilityChange?(visible: boolean): void; onOpenFinding(finding:Finding):void }) {
+export function HomeScreen({ isActive, isCovered = false, onNewCard, onContact, onBannerVisibilityChange, onOpenFinding, ...menuActions }: MenuActions & { isActive: boolean; isCovered?:boolean; onNewCard: () => void; onContact(): void; onBannerVisibilityChange?(visible: boolean): void; onOpenFinding(finding:Finding):void }) {
   const { snapshot, loading, agents, completeTask, restoreTask, actionErrors, conversation, send, cancel, markCardSeen } = useAppData();
   const insets = useSafeAreaInsets();
 
@@ -232,7 +234,7 @@ export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityC
       // Keep the current screen and scroll position when background results arrive.
     }
   }, [snapshot.findings, loading, onNewCard]);
-  const {featured:finding,others}=homeFindings(snapshot);
+  const {featured:finding,others}=homeFindings(snapshot,agents);
   const state = conversation(finding?.id??null,finding?.agentId);
   const sentText = pendingRequestText(state);
   const taskStack = useTaskStack(snapshot.tasks, loading, isActive, gateway.cacheIdentity??'demo');
@@ -291,11 +293,11 @@ export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityC
 
   const visibleCardId=finding&&featuredBounds.height>0&&featuredBounds.y+featuredBounds.height>feedOffset&&featuredBounds.y<feedOffset+canvasSize.height?finding.id:null;
   useEffect(() => {
-    const report=()=>{if(isActive&&AppState.currentState==='active'&&visibleCardId)void markCardSeen(visibleCardId).catch(()=>{});};
+    const report=()=>{if(isActive&&!isCovered&&AppState.currentState==='active'&&visibleCardId)void markCardSeen(visibleCardId).catch(()=>{});};
     report();
     const subscription=AppState.addEventListener('change',state=>{if(state==='active')report();});
     return ()=>subscription.remove();
-  },[isActive,visibleCardId,markCardSeen]);
+  },[isActive,isCovered,visibleCardId,markCardSeen]);
 
   const keyboardVisible = keyboardOpen || (fullHeight > 0 && fullHeight - viewportHeight > 80);
 
@@ -310,11 +312,11 @@ export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityC
     <View style={[styles.canvasFrame, screenHeight > 0 ? { height: canvasBottom } : { bottom: 0 }]}>
 
     <View style={styles.stage}>
-      <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />
+      {!hasTasks && <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.topFade} />}
       <View style={styles.canvasViewport} onLayout={event => setCanvasSize(event.nativeEvent.layout)}>
         <ScrollView accessibilityLabel="Home feed" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
           scrollEventThrottle={32} onScroll={({nativeEvent})=>setFeedOffset(nativeEvent.contentOffset.y)}
-          contentContainerStyle={{paddingHorizontal:layout.gutter,paddingTop:hasTasks?Math.max(chromeHeight+16,insets.top+118):insets.top+36,paddingBottom:28}}>
+          contentContainerStyle={{paddingHorizontal:layout.gutter,paddingTop:insets.top+112,paddingBottom:28}}>
           {finding?<>
             <View onLayout={({nativeEvent:{layout:bounds}})=>setFeaturedBounds({y:bounds.y,height:bounds.height})}>
               <FindingContent finding={finding} onAction={sendText}/>
@@ -324,9 +326,9 @@ export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityC
                 onPress={()=>{Keyboard.dismiss();onOpenFinding(item);}} style={styles.updateRow}>
                 {'uri' in item.image&&<SafeImage image={item.image} allowAvatar={false} resizeMode="cover" style={styles.updateImage}/>}
                 <View style={styles.updateCopy}>
-                  <AppText style={styles.updateTitle} numberOfLines={2}>{item.title}</AppText>
-                  {!!findingPreview(item)&&<AppText style={styles.updatePreview} numberOfLines={2}>{visibleText(findingPreview(item))}</AppText>}
-                  <AppText style={styles.agentLabel}>{agents.find(agent=>agent.id===item.agentId)?.name??'Agent update'}</AppText>
+                  <AppText style={styles.updateContent} numberOfLines={3}>{visibleText(findingPreview(item)||item.title)}</AppText>
+                  {item.blocks.filter(block=>block.type==='email-link').map(block=><EmailLink key={block.id} block={block}/>)}
+                  <AgentPill name={agents.find(agent=>agent.id===item.agentId)?.name}/>
                 </View>
               </Pressable>)}
             </View>
@@ -336,9 +338,9 @@ export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityC
             <AppText style={styles.welcomeBody}>We can figure out what matters today, one thing at a time.</AppText>
           </View>}
         </ScrollView>
-        <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasTopFade} />
-        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: insets.top + 40, height: 8 + 14 + 8 + 45 / 2 }]} />}
-        {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top + 40, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
+        {!hasTasks && <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasTopFade} />}
+        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: insets.top, height: 8 + 14 + 8 + 45 / 2 }]} />}
+        {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
           onLayout={({ nativeEvent: { layout: chrome } }) => setChromeHeight(previous => previous === chrome.height ? previous : chrome.height)}>
           <ScrollView style={{ maxHeight: Math.max(48, chromeAvailableHeight - 40), flexGrow: 0 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {taskList}
@@ -411,12 +413,10 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 29, textAlign: 'center' },
   emptyBody: { fontSize: 14, lineHeight: 21, textAlign: 'center', color: colors.muted, marginTop: 12 },
   updates:{marginTop:28},
-  updateRow:{borderTopWidth:1,borderTopColor:'#414141',paddingVertical:16,flexDirection:'row',gap:12},
+  updateRow:{borderTopWidth:1,borderTopColor:'#383838',paddingTop:22,paddingBottom:27,flexDirection:'row',gap:12},
   updateImage:{width:88,height:68,borderRadius:4},
-  updateCopy:{flex:1,gap:7},
-  updateTitle:{fontFamily:fonts.semibold,fontSize:16,lineHeight:21,color:colors.text},
-  updatePreview:{fontSize:14,lineHeight:19,color:colors.secondary},
-  agentLabel:{fontSize:11,lineHeight:16,color:'#7fa6ff',backgroundColor:'#202020',borderRadius:12,paddingHorizontal:12,paddingVertical:2,alignSelf:'flex-start'},
+  updateCopy:{flex:1,justifyContent:'center',gap:12},
+  updateContent:{fontFamily:fonts.semibold,fontSize:16,lineHeight:22,color:colors.text},
   responseFrame: { position: 'absolute', left: layout.gutter, right: layout.gutter, zIndex: 31 },
   thinkingIndicator: { position: 'absolute', left: layout.gutter + 5, height: 40, zIndex: 32, justifyContent: 'center' },
   thinkingDots: { height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: '#292929' },

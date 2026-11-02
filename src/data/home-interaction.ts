@@ -1,4 +1,4 @@
-import type { Reply, Snapshot, Finding } from './types';
+import type { Reply, Snapshot, Finding, Agent } from './types';
 
 /** Resolve from the current offset, including fast flings over multiple cards. */
 export function visibleFindingId(items: readonly { id: string }[], offset: number, width: number) {
@@ -14,15 +14,26 @@ export function pendingRequestText(state: { status: string; requestText?: string
 }
 
 /** Older responses and stale selections use the newest supplied eligible card. */
-export function homeFindings(snapshot:Snapshot){
-  const featured=snapshot.findings.find(item=>item.id===snapshot.featuredFindingId)??snapshot.findings[0]??null;
-  return {featured,others:snapshot.findings.filter(item=>item.id!==featured?.id)};
+export function homeFindings(snapshot:Snapshot,agents:Agent[]=[]){
+  const cards=[...snapshot.findings];
+  for(const agent of agents){
+    if(agent.enabled===false||cards.some(card=>card.agentId===agent.id))continue;
+    cards.push({id:'agent:'+agent.id,agentId:agent.id,title:agent.name,image:agent.image,blocks:[{id:'empty',type:'paragraph',text:'No updates yet.'}],suggestions:[]});
+  }
+  const featured=cards.find(item=>item.id===snapshot.featuredFindingId)??cards[0]??null;
+  const seen=new Set<string>(featured?[featured.agentId??featured.id]:[]);
+  const others=cards.filter(item=>{
+    const key=item.agentId??item.id;
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+  return {featured,others};
 }
 export function findingPreview(finding:Finding){
   for(const block of finding.blocks){
-    if(block.type==='paragraph'||block.type==='heading')return block.text;
+    if(block.type==='paragraph')return block.text;
     if(block.type==='numbered-list')return block.items.map(item=>item.text).join(' · ');
     if(block.type==='table')return block.title;
   }
-  return '';
+  return finding.blocks.find(block=>block.type==='heading')?.text??'';
 }

@@ -6,6 +6,7 @@ export type TableText = string | { text: string; tone?: 'highlight' | 'muted' }[
 export type Action = { id: string; label: string; message: string };
 
 export type ContentBlock =
+  | {id:string;type:'email-link';messageId:string;label?:string;url?:string}
   | { id: string; type: 'heading'; text: string }
   | { id: string; type: 'paragraph'; text: string }
   | { id: string; type: 'numbered-list'; items: { id: string; text: string }[] }

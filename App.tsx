@@ -1,4 +1,4 @@
-import { FindingDetailScreen } from './src/screens/FindingDetailScreen';
+import { FindingPopup } from './src/screens/FindingPopup';
 import type { Finding } from './src/data/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
@@ -71,19 +71,19 @@ function Shell() {
     <StatusBar hidden={false} style="light" />
     <View style={styles.content}>
     <TabPager active={tab}>
-      <HomeScreen {...menuActions} isActive={tab === 'home'&&!detail} onOpenFinding={setDetail} onNewCard={() => navigate('home')} onContact={openContactEmail} onBannerVisibilityChange={setHomeBannersVisible} />
+      <HomeScreen {...menuActions} isActive={tab === 'home'} isCovered={!!detail} onOpenFinding={setDetail} onNewCard={() => navigate('home')} onContact={openContactEmail} onBannerVisibilityChange={setHomeBannersVisible} />
       <MarketplaceScreen isActive={tab === 'marketplace'} onContact={openContactEmail} />
       <ProfileScreen {...menuActions} onContact={openContactEmail} />
     </TabPager>
     </View>
-    {!detail && tab !== 'profile' && <View pointerEvents="none" style={styles.statusBarFade}>
+    {tab !== 'profile' && !(tab === 'home' && homeBannersVisible) && <View pointerEvents="none" style={styles.statusBarFade}>
       <View style={{ height: insets.top, backgroundColor: '#000000' }} />
       <LinearGradient colors={['#000000', '#00000000']} style={{ height: 10 }} />
     </View>}
-    {!detail && !keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
+    {!keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
     <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={openContactEmail} />
-    <FixedContact onPress={openContactEmail} visible={!detail&&(!homeBannersVisible || tab !== 'home')} />
-    {detail&&<FindingDetailScreen finding={detail} onBack={()=>setDetail(null)}/>}
+    <FixedContact onPress={openContactEmail} visible={tab !== 'home'} />
+    {detail&&<FindingPopup finding={detail} onClose={()=>setDetail(null)}/>}
   </KeyboardAvoidingView>;
 }
 

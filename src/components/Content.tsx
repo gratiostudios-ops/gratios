@@ -1,3 +1,4 @@
+import { EmailLink } from './EmailLink';
 import { HapticPressable as Pressable } from './HapticControls';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -60,6 +61,7 @@ function Table({ block }: { block: Extract<ContentBlock, { type: 'table' }> }) {
 export function Content({ blocks, onAction }: { blocks: ContentBlock[]; onAction: (message: string) => void }) {
   return <View style={styles.blocks}>{blocks.map(block => {
     switch (block.type) {
+      case 'email-link': return <EmailLink key={block.id} block={block}/>;
       case 'heading': return <RichText key={block.id} style={styles.heading} text={block.text} />;
       case 'paragraph': return <RichText key={block.id} style={styles.paragraph} text={block.text} />;
       case 'table': return <Table key={block.id} block={block} />;
