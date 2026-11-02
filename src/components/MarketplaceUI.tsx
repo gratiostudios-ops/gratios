@@ -27,7 +27,7 @@ export function MarketError({ text }: { text?: string }) { return text ? <AppTex
 export function MarketField({ label, value, onChange, multiline = false, maxLength = 16000 }: { label: string; value: string; onChange(value: string): void; multiline?: boolean; maxLength?: number }) {
   return <View style={{ gap: 8 }}><AppText style={ui.label}>{label}</AppText><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} multiline={multiline} maxLength={maxLength} placeholderTextColor="#666" selectionColor="#2468f5" textAlignVertical={multiline ? 'top' : 'center'} style={[ui.input, multiline && { minHeight: 104 }]} /></View>;
 }
-export function MarketModal({ title, onClose, children, busy = false, popup = false, compact = false }: { title: string; onClose(): void; children: React.ReactNode; busy?: boolean; popup?: boolean; compact?: boolean }) {
+export function MarketModal({ title, onClose, children, busy = false, popup = false, compact = false, fitContent = false }: { title: string; onClose(): void; children: React.ReactNode; busy?: boolean; popup?: boolean; compact?: boolean; fitContent?: boolean }) {
   const insets = useSafeAreaInsets();
   if (popup) return <Modal transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!busy) onClose(); }}>
     <KeyboardAvoidingView style={[ui.popupOverlay, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -39,7 +39,17 @@ export function MarketModal({ title, onClose, children, busy = false, popup = fa
             <PhosphorIcon name="close" size={18} color="#fff" />
           </Pressable>
         </View>
-        <ScrollView style={{ flexGrow: 0 }} keyboardShouldPersistTaps="handled" contentContainerStyle={ui.popupContent}>{children}</ScrollView>
+        <ScrollView style={ui.popupScroll} keyboardShouldPersistTaps="handled" contentContainerStyle={ui.popupContent}>{children}</ScrollView>
+      </View>
+    </KeyboardAvoidingView>
+    <FixedContact />
+  </Modal>;
+  if (fitContent) return <Modal transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!busy) onClose(); }}>
+    <KeyboardAvoidingView style={[ui.popupOverlay, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Dismiss agent" disabled={busy} onPress={onClose} style={StyleSheet.absoluteFill} />
+      <View accessibilityViewIsModal style={ui.popupCard}>
+        <View style={ui.popupToolbar}><AppText accessibilityRole="header" style={ui.modalTitle}>{title}</AppText><Pressable accessibilityRole="button" accessibilityLabel="Close agent" disabled={busy} onPress={onClose} style={ui.popupClose}><PhosphorIcon name="close" size={18} color="#fff" /></Pressable></View>
+        <ScrollView style={ui.popupScroll} keyboardShouldPersistTaps="handled" contentContainerStyle={ui.popupContent}>{children}</ScrollView>
       </View>
     </KeyboardAvoidingView>
     <FixedContact />
@@ -96,6 +106,7 @@ export const ui = StyleSheet.create({
   disclosureContent: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   popupOverlay: { flex: 1, backgroundColor: '#00000099', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
   popupCard: { width: '100%', maxWidth: 420, maxHeight: '85%', flexShrink: 1, backgroundColor: '#1b1b1b', borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: '#ffffff14' },
+  popupScroll: { flexGrow: 0, flexShrink: 1 },
   popupToolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   popupClose: { width: 44, height: 44, flexShrink: 0, borderRadius: 22, backgroundColor: '#333333', alignItems: 'center', justifyContent: 'center' },
   popupBody: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 14, lineHeight: 21 },

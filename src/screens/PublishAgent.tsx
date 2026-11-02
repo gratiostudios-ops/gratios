@@ -48,7 +48,7 @@ export function PublishAgent({ listing, onClose }: { listing?: OwnListing; onClo
   };
   const installedIds = new Set(installations.map(item => item.agent_id));
   const available = sources.filter(agent => !installedIds.has(agent.id));
-  return <MarketModal compact title={creating ? 'Create an agent' : listing ? 'Manage public agent' : 'Publish an agent'} onClose={onClose} busy={busy || formBusy}>
+  return <MarketModal compact fitContent title={creating ? 'Create an agent' : listing ? 'Manage public agent' : 'Publish an agent'} onClose={onClose} busy={busy || formBusy}>
     {!creating && <AppText style={ui.body}>Share an agent you already use. Your personal preferences, connected accounts, and conversations stay private.</AppText>}
     {creating && <AgentCreatorForm onBusyChange={setFormBusy} onCreated={async agent => { setSources(previous => previous.some(item => item.id === agent.id) ? previous : [...previous, { id: agent.id, name: agent.name, role: 'agent' }]); setCreating(false); await run(async () => { const value = await api.createDraft(agent.id); setResult(value); setDraft(value.draft); }); }} />}
     {!draft && !creating && <MarketButton label="Create new agent" secondary disabled={busy || formBusy || demoMode} onPress={() => setCreating(true)} />}

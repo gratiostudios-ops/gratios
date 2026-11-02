@@ -39,7 +39,7 @@ export function MarketplaceScreen({ isActive, onContact }: { isActive: boolean; 
     const current = ++generation.current;
     setLoading(true); setError('');
     const timer = setTimeout(() => {
-      void Promise.all([api.catalog('newest', query.trim()), api.catalog('featured')]).then(([top, picks]) => {
+      void Promise.all([api.catalog('newest', query.trim()), api.catalog(query.trim() ? 'featured' : 'top', query.trim())]).then(([top, picks]) => {
         if (current !== generation.current) return;
         loadedQuery.current = requestKey;
         setCatalog(top.agents);
@@ -77,10 +77,11 @@ export function MarketplaceScreen({ isActive, onContact }: { isActive: boolean; 
         <AppText style={styles.subtitle}>Find best agents suites your{'\n'}personal taste and use</AppText>
         <Pressable accessibilityRole="button" onPress={() => setPublishing(true)} style={{ backgroundColor: '#2468f5', borderRadius: 22, minHeight: 44, paddingVertical: 10, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', marginTop: 12 }}><AppText style={{ color: '#fff', fontSize: 14, lineHeight: 20, fontFamily: fonts.semibold }}>Publish Agent</AppText></Pressable>
       </View>
+      {query.trim() && <AppText style={styles.section}>Search results</AppText>}
       <View style={{ paddingHorizontal: 35 }}><MarketplaceDeck key={deck.map(item => item.id).join(':')} items={deck} installed={installed} onOpen={setSelected} onAdd={add} loading={!demoMode && loading && !catalog.length} /></View>
       <View style={styles.content}>
         <View style={styles.search}><TextInput accessibilityLabel="Search marketplace agents" placeholder="Search" placeholderTextColor="#555" value={query} onChangeText={setQuery} maxLength={200} style={styles.searchInput} returnKeyType="search" />{!!query && <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setQuery('')} style={styles.clear}><AppText style={{ color: '#aaa', fontSize: 21 }}>×</AppText></Pressable>}</View>
-        <AppText style={styles.section}>{query.trim() ? 'Search results' : 'New arrivals'}</AppText>
+        {!query.trim() && <AppText style={styles.section}>New arrivals</AppText>}
         {rows.filter(item => !demoMode || query.trim() || item.id !== 'deal-finder').map(item => <View key={item.id} style={styles.row}>
           <Pressable accessibilityRole="button" accessibilityLabel={'View ' + item.name} onPress={() => setSelected(item)} style={styles.rowInfo}>{demoMode ? <Image source={localMarketIcon(item.id)} resizeMode="contain" style={{ width: 56, height: 56 }} /> : <MarketArt image={item.artwork} size={56} />}<View style={{ flex: 1, minWidth: 0, gap: 4 }}><AppText numberOfLines={2} style={styles.rowTitle}>{item.name}</AppText><AppText numberOfLines={2} style={styles.rowDescription}>{item.description}</AppText></View></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={(installed.has(item.id) ? 'Remove ' : 'Add ') + item.name} onPress={() => add(item)} style={styles.add}><AppText style={styles.addText}>{installed.has(item.id) ? 'View' : 'Add'}</AppText></Pressable>
@@ -93,7 +94,7 @@ export function MarketplaceScreen({ isActive, onContact }: { isActive: boolean; 
       </View>
     </ScrollView>
     {selected && !demoMode && <MarketplaceDetail listingId={selected.id} onClose={() => setSelected(null)} />}
-    {selected && demoMode && <MarketModal popup title={selected.name} onClose={() => setSelected(null)}><Image source={localMarketIcon(selected.id)} resizeMode="contain" style={{ width: 150, height: 150, alignSelf: 'center' }} /><AppText style={ui.popupBody}>{selected.description}</AppText><MarketButton label={installed.has(selected.id) ? 'Remove agent' : 'Add agent'} onPress={() => toggle(selected.id)} /><AppText style={ui.popupBody}>Preview only. Your selection stays on this screen; no services are connected.</AppText></MarketModal>}
+    {selected && demoMode && <MarketModal popup fitContent title={selected.name} onClose={() => setSelected(null)}><Image source={localMarketIcon(selected.id)} resizeMode="contain" style={{ width: 150, height: 150, alignSelf: 'center' }} /><AppText style={ui.popupBody}>{selected.description}</AppText><MarketButton label={installed.has(selected.id) ? 'Remove agent' : 'Add agent'} onPress={() => toggle(selected.id)} /><AppText style={ui.popupBody}>Preview only. Your selection stays on this screen; no services are connected.</AppText></MarketModal>}
     {publishing && <PublishAgent onClose={() => setPublishing(false)} />}
   </View>;
 }

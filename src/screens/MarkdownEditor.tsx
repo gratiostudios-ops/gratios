@@ -21,8 +21,9 @@ export function MarkdownEditor({ documentId, title, onClose, readOnly = false }:
     finally { setSaving(false); }
   };
   const insets = useSafeAreaInsets();
-  return <Modal animationType="slide" onRequestClose={onClose}>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: insets.top + 48, paddingBottom: insets.bottom }]}>
+  return <Modal transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <View style={styles.overlay}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { marginTop: insets.top + 24, marginBottom: insets.bottom + 24 }]}>
       <StatusBar hidden={false} style="light" />
       <View style={styles.toolbar}>
         <Pressable accessibilityRole="button" onPress={onClose} style={styles.button}><AppText style={styles.cancel}>{readOnly ? 'Close' : 'Cancel'}</AppText></Pressable>
@@ -34,11 +35,13 @@ export function MarkdownEditor({ documentId, title, onClose, readOnly = false }:
         style={styles.editor} selectionColor={colors.blue} placeholder="# Your instructions" placeholderTextColor={colors.faint} />
       <AppText accessibilityLiveRegion="polite" style={styles.hint}>{error ?? (readOnly ? 'Marketplace instructions · Read-only' : 'Markdown · Save to update your instructions')}</AppText>
     </KeyboardAvoidingView>
+    </View>
     <FixedContact />
   </Modal>;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  overlay: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: '#00000099' },
   toolbar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 10 },
   button: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center' },
   cancel: { color: colors.blue },

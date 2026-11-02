@@ -34,8 +34,8 @@ export function FindingPopup({finding,onClose}:{finding:Finding;onClose:()=>void
 }
 const styles=StyleSheet.create({
   scrim:{flex:1,backgroundColor:'rgba(0,0,0,0.65)',alignItems:'center',justifyContent:'center',paddingHorizontal:16},
-  panel:{width:'100%',maxWidth:540,height:'90%',backgroundColor:colors.background,borderRadius:24,borderWidth:1,borderColor:'#343434',overflow:'hidden',paddingBottom:16},
+  panel:{width:'100%',maxWidth:540,maxHeight:'90%',flexShrink:1,backgroundColor:colors.background,borderRadius:24,borderWidth:1,borderColor:'#343434',overflow:'hidden',paddingBottom:16},
   closeTarget:{width:48,height:48,marginTop:8,marginRight:8,alignItems:'center',justifyContent:'center',alignSelf:'flex-end'},
   closeCircle:{width:36,height:36,borderRadius:18,backgroundColor:'#2c2c2e',alignItems:'center',justifyContent:'center'},
-  content:{flex:1},body:{paddingHorizontal:layout.gutter,paddingTop:8,paddingBottom:28},
+  content:{flexGrow:0,flexShrink:1},body:{paddingHorizontal:layout.gutter,paddingTop:8,paddingBottom:28},
 });
