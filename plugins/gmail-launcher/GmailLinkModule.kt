@@ -16,7 +16,10 @@ class GmailLinkModule(private val context: ReactApplicationContext) : ReactConte
     try {
       val uri = Uri.parse(url)
       require(uri.scheme == "https" && uri.host == "mail.google.com" && uri.userInfo == null && uri.port == -1 &&
-        uri.path?.startsWith("/mail/u/") == true && uri.fragment?.startsWith("search/") == true) {
+        (uri.path == "/mail/u/" || uri.path == "/mail/u/0" || uri.path == "/mail/u/0/") &&
+        uri.queryParameterNames.all { it == "authuser" } &&
+        (uri.getQueryParameter("authuser") == null || uri.getQueryParameter("authuser")!!.isNotBlank()) &&
+        uri.fragment?.startsWith("search/") == true) {
         "Invalid source email URL"
       }
       // setPackage is essential: a generic ACTION_VIEW can launch the browser.

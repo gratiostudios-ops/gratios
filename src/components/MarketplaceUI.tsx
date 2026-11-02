@@ -95,7 +95,7 @@ export const ui = StyleSheet.create({
   disclosureSummary: { fontSize: 12, lineHeight: 16, color: '#858585' },
   disclosureContent: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   popupOverlay: { flex: 1, backgroundColor: '#00000099', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
-  popupCard: { width: '100%', maxWidth: 420, maxHeight: '85%', backgroundColor: '#1b1b1b', borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: '#ffffff14' },
+  popupCard: { width: '100%', maxWidth: 420, maxHeight: '85%', flexShrink: 1, backgroundColor: '#1b1b1b', borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: '#ffffff14' },
   popupToolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   popupClose: { width: 44, height: 44, flexShrink: 0, borderRadius: 22, backgroundColor: '#333333', alignItems: 'center', justifyContent: 'center' },
   popupBody: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 14, lineHeight: 21 },
