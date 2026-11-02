@@ -17,7 +17,7 @@ import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_900Black } from '@expo-google-fonts/inter/900Black';
 import { AppDataProvider } from './src/data/AppData';
 import { NavigationSheet, BottomNavigation, type Destination } from './src/components/Navigation';
-import { ContactDialog, FixedContact } from './src/components/ContactLink';
+import { FixedContact, openContactEmail } from './src/components/ContactLink';
 import { TabPager } from './src/components/TabPager';
 import { AppText } from './src/components/UI';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -29,6 +29,11 @@ import { AuthProvider, useAuth } from './src/auth/Auth';
 import { AuthScreen } from './src/auth/AuthScreen';
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
+let splashHideTimer: ReturnType<typeof setTimeout> | null = null;
+function hideSplashAfterExtraDelay() {
+  if (splashHideTimer) return;
+  splashHideTimer = setTimeout(() => { void SplashScreen.hideAsync().catch(() => {}); }, 500);
+}
 
 function Shell() {
   const insets = useSafeAreaInsets();
@@ -37,8 +42,8 @@ function Shell() {
   const navigate = useCallback((destination: Destination) => {
     setHistory(previous => previous[previous.length - 1] === destination ? previous : [...previous, destination]);
   }, []);
-  const [contact, setContact] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [homeBannersVisible, setHomeBannersVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -62,9 +67,9 @@ function Shell() {
     <StatusBar hidden={false} style="light" />
     <View style={styles.content}>
     <TabPager active={tab}>
-      <HomeScreen {...menuActions} isActive={tab === 'home'} onNewCard={() => navigate('home')} onContact={() => setContact(true)} />
-      <MarketplaceScreen isActive={tab === 'marketplace'} onContact={() => setContact(true)} />
-      <ProfileScreen {...menuActions} onContact={() => setContact(true)} />
+      <HomeScreen {...menuActions} isActive={tab === 'home'} onNewCard={() => navigate('home')} onContact={openContactEmail} onBannerVisibilityChange={setHomeBannersVisible} />
+      <MarketplaceScreen isActive={tab === 'marketplace'} onContact={openContactEmail} />
+      <ProfileScreen {...menuActions} onContact={openContactEmail} />
     </TabPager>
     </View>
     {tab !== 'profile' && <View pointerEvents="none" style={styles.statusBarFade}>
@@ -72,9 +77,8 @@ function Shell() {
       <LinearGradient colors={['#000000', '#00000000']} style={{ height: 10 }} />
     </View>}
     {!keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
-    <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={() => setContact(true)} />
-    <FixedContact onPress={() => setContact(true)} />
-    <ContactDialog visible={contact} onClose={() => setContact(false)} />
+    <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={openContactEmail} />
+    <FixedContact onPress={openContactEmail} visible={!homeBannersVisible || tab !== 'home'} />
   </KeyboardAvoidingView>;
 }
 
@@ -92,10 +96,10 @@ export default function App() {
     Poppins_400Regular, Poppins_600SemiBold, Inter_400Regular, Inter_900Black,
   });
   const onReady = useCallback(() => {
-    if (loaded || fontError) void SplashScreen.hideAsync().catch(() => {});
+    if (loaded || fontError) hideSplashAfterExtraDelay();
   }, [loaded, fontError]);
   useEffect(() => {
-    if (fontError) void SplashScreen.hideAsync().catch(() => {});
+    if (fontError) hideSplashAfterExtraDelay();
   }, [fontError]);
   if (!loaded) return <View style={styles.loading} onLayout={onReady}>
     <StatusBar hidden={false} style="light" />

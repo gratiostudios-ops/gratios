@@ -168,7 +168,7 @@ function TypewriterReply({ messages, progress, onAction, working, suggestions, o
     onContentSizeChange={() => { if (followLatest.current) scroll.current?.scrollToEnd({ animated: false }); }}
     onScroll={({ nativeEvent }) => { followLatest.current = nativeEvent.contentSize.height - nativeEvent.contentOffset.y - nativeEvent.layoutMeasurement.height < 24; }} scrollEventThrottle={16}
     accessibilityLiveRegion={complete ? 'polite' : 'none'}>
-    {wakePrompt ? <AppText accessibilityLiveRegion="polite" style={styles.replyHighlight}>I’m here with you. What would feel helpful?</AppText> : displayed ? <View key={displayed.id} style={styles.replyBubble}>
+    {wakePrompt ? <AppText accessibilityLiveRegion="polite" style={styles.replyHighlight}>What can I do for you?</AppText> : displayed ? <View key={displayed.id} style={styles.replyBubble}>
       <ReplyText reply={displayed.reply} visibleCharacters={visibleCharacters} />
       {complete && displayed.reply.actions && <View style={styles.replyActions}>{displayed.reply.actions.map(action => <ActionChip key={action.id} action={action} onPress={onAction} />)}</View>}
     </View> : null}
@@ -237,7 +237,7 @@ function Composer({ value, setValue, onSend, onCancel, running, keyboardActive }
   </View>;
 }
 
-export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void; onContact(): void }) {
+export function HomeScreen({ isActive, onNewCard, onContact, onBannerVisibilityChange, ...menuActions }: MenuActions & { isActive: boolean; onNewCard: () => void; onContact(): void; onBannerVisibilityChange?(visible: boolean): void }) {
   const { snapshot, loading, agents, completeTask, restoreTask, actionErrors, conversation, send, cancel, markCardSeen } = useAppData();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -292,6 +292,7 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
   const sentText = pendingRequestText(state);
   const taskStack = useTaskStack(snapshot.tasks, loading, isActive, gateway.cacheIdentity??'demo');
   const hasTasks = taskStack.items.length > 0;
+  useEffect(() => { onBannerVisibilityChange?.(isActive && hasTasks); }, [hasTasks, isActive, onBannerVisibilityChange]);
   const bottomPadding = 8;
   const reclaimedHeight = Math.max(0, bottomTabHeight(insets.bottom) - bottomPadding);
   const responseHeight = Math.max(74, 74 + reclaimedHeight - 24);
@@ -454,7 +455,7 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
         suggestions={!state.sent ? generalSuggestions : undefined}
       />
     </View>
-    {state.status === 'thinking' && <View pointerEvents="none" style={[styles.thinkingIndicator, { top: Math.max(responseTop, responseBottom - 40) }]}><TypingIndicator style={{ paddingHorizontal: 0 }} /></View>}
+    {state.status === 'thinking' && <View pointerEvents="none" style={[styles.thinkingIndicator, { top: Math.max(responseTop, responseBottom - 40) }]}><TypingIndicator style={styles.thinkingDots} /></View>}
     <View style={[styles.composerDock, { bottom: 8 }]}>
       {sentText && <View style={styles.sentMessage}>
         <ScrollView style={{ maxHeight: 80 }} showsVerticalScrollIndicator={false}><AppText selectable accessibilityLabel="Your sent message" style={styles.sentMessageText}>{sentText}</AppText></ScrollView>
@@ -482,8 +483,8 @@ export function HomeScreen({ isActive, onNewCard, onContact, ...menuActions }: M
 }
 
 const styles = StyleSheet.create({
-  sentMessage: { alignSelf: 'stretch', marginLeft: 73, marginBottom: 8, paddingHorizontal: 4 },
-  sentMessageText: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 12, lineHeight: 17 },
+  sentMessage: { alignSelf: 'stretch', marginLeft: 76, marginBottom: 8, paddingHorizontal: 4 },
+  sentMessageText: { color: '#A6A6A6', fontFamily: fonts.medium, fontSize: 14, lineHeight: 17, textAlign: 'right' },
   screen: { flex: 1, backgroundColor: colors.background },
   canvasFrame: { position: 'absolute', top: 0, left: 0, right: 0 },
   stage: { flex: 1, minHeight: 0 },
@@ -508,17 +509,18 @@ const styles = StyleSheet.create({
   pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text },
   responseFrame: { position: 'absolute', left: layout.gutter, right: layout.gutter, zIndex: 31 },
   thinkingIndicator: { position: 'absolute', left: layout.gutter + 5, height: 40, zIndex: 32, justifyContent: 'center' },
+  thinkingDots: { height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: '#292929' },
   suggestions: { flex: 1, justifyContent: 'center', overflow: 'hidden' },
   suggestionChips: { gap: 8, flexShrink: 0, alignItems: 'flex-start' },
   replyRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  assistantSlot: { position: 'absolute', left: 0, top: 8, width: 58, height: 58, alignItems: 'center', justifyContent: 'center' },
-  replyScroll: { flex: 1, alignSelf: 'stretch', minWidth: 0, marginLeft: 73 },
-  reply: { flexGrow: 1, justifyContent: 'flex-start', gap: 8 },
+  assistantSlot: { position: 'absolute', left: 0, top: 8, width: 72.5, height: 72.5, alignItems: 'center', justifyContent: 'center' },
+  replyScroll: { flex: 1, alignSelf: 'stretch', minWidth: 0, marginLeft: 88 },
+  reply: { flexGrow: 1, justifyContent: 'center', gap: 8 },
   replyBubble: { borderRadius: 16, paddingHorizontal: 4, paddingVertical: 4, gap: 8 },
   replyText: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: colors.body },
   replyHighlight: { fontFamily: fonts.bold, fontSize: 16, lineHeight: 22, color: '#ffffff' },
   replyActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  composer: { flex: 1, minWidth: 0, minHeight: layout.inputHeight, backgroundColor: colors.surface, borderRadius: 26, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 7 },
+  composer: { flex: 1, minWidth: 0, minHeight: layout.inputHeight, backgroundColor: '#292929', borderRadius: 26, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 7 },
   activeInputBorder: { ...StyleSheet.absoluteFill, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)' },
   input: { fontFamily: fonts.interface, fontSize: 14, lineHeight: 22, color: colors.text, flex: 1, paddingVertical: 0, marginVertical: 12, paddingRight: 8, textAlignVertical: 'top', ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
   send: { width: 54, height: 44, alignSelf: 'flex-end', marginBottom: 4, alignItems: 'center', justifyContent: 'center' },

@@ -1,9 +1,13 @@
 import { HapticPressable as Pressable } from './HapticControls';
-import React, { useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { Linking, Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { AppText } from './UI';
+
+export function openContactEmail() {
+  void Linking.openURL('mailto:gratiostudios@gmail.com').catch(() => {});
+}
 
 export function ContactLink({ onPress }: { onPress(): void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel="Contact us" onPress={onPress} hitSlop={10} style={styles.button}>
@@ -12,14 +16,13 @@ export function ContactLink({ onPress }: { onPress(): void }) {
 }
 
 /** Render inside each native window so editors and modal screens retain the control. */
-export function FixedContact({ onPress }: { onPress?(): void } = {}) {
+export function FixedContact({ onPress, visible = true }: { onPress?(): void; visible?: boolean } = {}) {
   const insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState(false);
+  if (!visible) return null;
   return <>
     <View pointerEvents="box-none" style={[styles.fixed, { top: insets.top + 8 }]}>
-      <ContactLink onPress={onPress ?? (() => setVisible(true))} />
+      <ContactLink onPress={onPress ?? openContactEmail} />
     </View>
-    {!onPress && <ContactDialog visible={visible} onClose={() => setVisible(false)} />}
   </>;
 }
 

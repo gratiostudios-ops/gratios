@@ -14,10 +14,10 @@
       "package": "com.avocado.fuse",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/brand/app-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/brand/gratios-app-icon.png",
+        "backgroundColor": "#000000"
       },
-      "icon": "./assets/brand/app-icon.png"
+      "icon": "./assets/brand/gratios-app-icon.png"
     },
     "plugins": [
       "expo-font",
@@ -30,7 +30,7 @@
         {
           "backgroundColor": "#000000",
           "image": "./assets/brand/gratios-logo-white.png",
-          "imageWidth": 240,
+          "imageWidth": 300,
           "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#000000",
@@ -41,7 +41,7 @@
       "expo-notifications",
       "./plugins/with-notification-brand"
     ],
-    "icon": "./assets/brand/app-icon.png",
+    "icon": "./assets/brand/gratios-app-icon.png",
     "extra": {
       "eas": {
         "projectId": "0049d64d-14be-407d-8fb5-5a58694a6cb5"
