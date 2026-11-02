@@ -3,7 +3,7 @@ import type { Session } from '../data/api';
 
 export const googleRedirect = 'avocado://auth/callback';
 type Configuration = { supabaseUrl: string; supabaseKey: string };
-export const gmailScope = 'https://www.googleapis.com/auth/gmail.readonly';
+export const gmailScope = 'https://www.googleapis.com/auth/gmail.modify';
 export const calendarScopes = ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/tasks'];
 type GoogleOptions = { gmailAccess?: boolean; calendarAccess?: boolean; providerSession?(appToken: string, accessToken: string | undefined, refreshToken: string | undefined): Promise<void> };
 type BrowserResult = { type: string; url?: string };

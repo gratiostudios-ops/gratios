@@ -6,7 +6,7 @@ import { useAppData } from '../data/AppData';
 import { AppText } from './UI';
 import { fonts } from '../theme';
 
-type Status = { connected: boolean; tasksConnected?: boolean; accountEmail?: string | null };
+type Status = { connected: boolean; needsReconnect?:boolean; tasksConnected?: boolean; accountEmail?: string | null };
 const connectors = [
   { id: 'calendar', name: 'Google Calendar', image: require('../../assets/connectors/calendar.png') },
   { id: 'gmail', name: 'Gmail', image: require('../../assets/connectors/gmail.png') },
@@ -48,6 +48,8 @@ export function ConnectorSettings() {
     {connectors.map((connector, index) => <View key={connector.id} style={[styles.row, index === 0 && styles.divider]}>
       <Image source={connector.image} style={styles.icon} resizeMode="contain" />
       <View style={styles.label}><AppText style={styles.name}>{connector.name}</AppText>
+        {connector.id==='gmail'&&<AppText style={styles.description}>Read unread email and mark it read after processing.</AppText>}
+        {connector.id==='gmail'&&statuses.gmail?.needsReconnect&&<Pressable accessibilityRole="button" disabled={busy} onPress={()=>{void update('gmail',true);}}><AppText style={styles.link}>Reconnect to allow marking mail read</AppText></Pressable>}
         {connector.id === 'calendar' && statuses.calendar?.connected && !statuses.calendar.tasksConnected && <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void update('calendar', true); }}><AppText style={styles.link}>Reconnect to enable Tasks</AppText></Pressable>}
       </View>
       <Pressable accessibilityRole="switch" accessibilityLabel={`Connect ${connector.name}`} accessibilityState={{ checked: statuses[connector.id]?.connected ?? false, disabled: busy || isDemo || !statuses[connector.id] }} disabled={busy || isDemo || !statuses[connector.id]} onPress={() => { void update(connector.id, !statuses[connector.id]?.connected); }} hitSlop={6} style={[styles.switchTrack, statuses[connector.id]?.connected && styles.switchOn, (busy || isDemo || !statuses[connector.id]) && { opacity: 0.45 }]}>
@@ -63,5 +65,6 @@ const styles = StyleSheet.create({
   switchThumb: { width: 27, height: 27, borderRadius: 14, backgroundColor: '#ffffff' },
   row: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
   divider: { borderBottomWidth: 1, borderBottomColor: '#39393b' }, icon: { width: 30, height: 30 }, label: { flex: 1, minWidth: 0 },
+  description:{color:'#a6a6a6',fontSize:12,lineHeight:17,marginTop:4},
   name: { color: '#ffffff', fontFamily: fonts.medium, fontSize: 15, lineHeight: 22 }, link: { color: '#2468f5', fontFamily: fonts.regular, fontSize: 13, paddingVertical: 8 }, feedback: { marginTop: 12 },
 });

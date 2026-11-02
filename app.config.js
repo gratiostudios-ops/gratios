@@ -9,6 +9,10 @@ module.exports = ({ config }) => ({
   ...withAndroidManifest(config, (config) => {
     const application = config.modResults.manifest.application?.[0];
     if (application) application.$['android:usesCleartextTraffic'] = 'true';
+    const queries = config.modResults.manifest.queries ??= [];
+    if (!queries.some(query => query.package?.some(item => item.$['android:name'] === 'com.google.android.gm'))) {
+      queries.push({ package: [{ $: { 'android:name': 'com.google.android.gm' } }] });
+    }
     return config;
   }),
   android: {

@@ -339,7 +339,7 @@ export function HomeScreen({ isActive, isCovered = false, onNewCard, onContact, 
           </View>}
         </ScrollView>
         {!hasTasks && <LinearGradient pointerEvents="none" colors={['#000000', '#00000000']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.canvasTopFade} />}
-        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: insets.top, height: 8 + 14 + 8 + 45 / 2 }]} />}
+        {hasTasks && <View pointerEvents="none" style={[styles.bannerBackdrop, { top: 0, height: insets.top + 8 + 14 + 8 + 45 / 2 }]} />}
         {hasTasks && <View style={[styles.topChrome, { paddingTop: insets.top, paddingLeft: insets.left + layout.gutter, paddingRight: insets.right + layout.gutter }]}
           onLayout={({ nativeEvent: { layout: chrome } }) => setChromeHeight(previous => previous === chrome.height ? previous : chrome.height)}>
           <ScrollView style={{ maxHeight: Math.max(48, chromeAvailableHeight - 40), flexGrow: 0 }} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -403,8 +403,8 @@ const styles = StyleSheet.create({
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 252 },
   canvasTopFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 28 },
   canvasFade: { position: 'absolute', left: 0, right: 0, height: 28, zIndex: 1 },
-  bannerBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#000000' },
-  topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8 },
+  bannerBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.background },
+  topChrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingBottom: 8, backgroundColor: colors.background },
   welcomeCard: { width: '100%', maxWidth: 380, paddingVertical: 36, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
   welcomeHello: { fontFamily: fonts.semibold, color: '#f2e7da', fontSize: 58, lineHeight: 66, letterSpacing: -3.5, marginBottom: 8 },
   welcomeTitle: { fontFamily: fonts.semibold, fontSize: 28, lineHeight: 34, textAlign: 'center', letterSpacing: -0.5, color: '#ffffff' },

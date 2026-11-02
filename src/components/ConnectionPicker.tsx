@@ -38,7 +38,7 @@ export function ConnectionPicker({ selected, onChange, disabled = false }: { sel
     <View style={styles.sectionHeader}><AppText style={styles.heading}>Available</AppText><AppText style={styles.hint}>Tap + to add</AppText></View>
     {available.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.apps}>{available.map(option => app(option, false))}</ScrollView>
       : <AppText style={styles.emptyText}>All connections chosen. You can remove any above.</AppText>}
-    <AppText style={styles.note}>Choose what to set up. Permissions are requested after sign-in. Calendar and Tasks share one Google connection.</AppText>
+    <AppText style={styles.note}>Choose what to set up. Gmail reads unread mail and marks processed messages read. Permissions are requested after sign-in. Calendar and Tasks share one Google connection.</AppText>
   </View>;
 }
 const styles = StyleSheet.create({
