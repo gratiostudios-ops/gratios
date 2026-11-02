@@ -125,7 +125,7 @@ test('mobile restores pending conversations and disposal rejects asynchronous re
   const mobile = { snapshot: { tasks: [], findings: [] }, conversations: [{ id: 'thread', findingId: null, messages: [{ id: 'message', text: 'Summarize', status: 'running' }] }] };
   const client = new GatewayClient('http://localhost:4104', memoryStorage(), (async input => {
     calls++;
-    if (String(input).endsWith('/gateway/mobile')) return json(mobile);
+    if (new URL(String(input)).pathname==='/gateway/mobile') return json(mobile);
     posted.resolve(); return json({ id: 'message', conversationId: 'thread', status: 'running' });
   }) as typeof fetch);
   await client.accept(session());
@@ -214,7 +214,7 @@ test('authenticated event stream handles split frames, reconnects, and stops on 
   } finally { globalThis.XMLHttpRequest = original; }
 });
 
-test('stop cancels the server request, rejects its waiter, and discards late cards', async t => {
+test('stop cancels local delivery, rejects its waiter, and discards late cards', async t => {
   const posted = deferred<void>();
   let push!: (value: import('../src/data/types').MobileData['conversations']) => void;
   const requests: string[] = [];
@@ -233,11 +233,11 @@ test('stop cancels the server request, rejects its waiter, and discards late car
   const sending = source.sendMessage(request, () => accepted.resolve());
   const rejected = assert.rejects(sending, /cancelled/);
   await posted.promise; await accepted.promise;
-  assert.deepEqual((await source.cancelMessage!(request)).cardIds, ['late']);
+  assert.deepEqual((await source.cancelMessage!(request)).cardIds, []);
   await rejected;
   push([{ id: 'thread', findingId: null, messages: [{ id: 'message', text: request.text, status: 'completed', reply: { text: 'Late response' } }] }]);
   assert.deepEqual((await source.loadMobile!()).snapshot.findings.map(card => card.id), ['other']);
-  assert.equal(requests.filter(url => url.endsWith('/gateway/messages/cancel')).length, 1);
+  assert.equal(requests.filter(url => url.endsWith('/gateway/messages/cancel')).length, 0);
   source.dispose!();
 });
 

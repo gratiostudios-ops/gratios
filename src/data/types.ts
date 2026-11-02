@@ -48,7 +48,7 @@ export type Finding = {
 
 export type Task = { id: string; kind: 'task' | 'calendar'; title: string; due?: string; dueAt?: string; dueDate?: string; endsAt?: string };
 export type AgendaItem = Omit<Task, 'dueAt'> & { dueAt?: string | null; completed: boolean; allDay: boolean };
-export type Snapshot = { tasks: Task[]; findings: Finding[] };
+export type Snapshot = { featuredFindingId?: string | null; tasks: Task[]; findings: Finding[] };
 export type Reply = { version?: 1; text: string; highlights?: string[]; actions?: Action[] };
 export type SendRequest = { text: string; findingId: string | null; agentId?: string };
 

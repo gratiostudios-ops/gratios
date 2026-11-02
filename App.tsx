@@ -1,3 +1,5 @@
+import { FindingDetailScreen } from './src/screens/FindingDetailScreen';
+import type { Finding } from './src/data/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +44,7 @@ function Shell() {
   const navigate = useCallback((destination: Destination) => {
     setHistory(previous => previous[previous.length - 1] === destination ? previous : [...previous, destination]);
   }, []);
+  const [detail,setDetail]=useState<Finding|null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [homeBannersVisible, setHomeBannersVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -52,13 +55,14 @@ function Shell() {
   }, []);
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if(detail){Keyboard.dismiss();setDetail(null);return true;}
       if (history.length <= 1) return false;
       Keyboard.dismiss();
       setHistory(previous => previous.length > 1 ? previous.slice(0, -1) : previous);
       return true;
     });
     return () => subscription.remove();
-  }, [history.length]);
+  }, [history.length,detail]);
   useEffect(() => { Keyboard.dismiss(); }, [tab]);
   const menuActions = {
     onOpenMenu: () => { Keyboard.dismiss(); setMenuOpen(true); },
@@ -67,18 +71,19 @@ function Shell() {
     <StatusBar hidden={false} style="light" />
     <View style={styles.content}>
     <TabPager active={tab}>
-      <HomeScreen {...menuActions} isActive={tab === 'home'} onNewCard={() => navigate('home')} onContact={openContactEmail} onBannerVisibilityChange={setHomeBannersVisible} />
+      <HomeScreen {...menuActions} isActive={tab === 'home'&&!detail} onOpenFinding={setDetail} onNewCard={() => navigate('home')} onContact={openContactEmail} onBannerVisibilityChange={setHomeBannersVisible} />
       <MarketplaceScreen isActive={tab === 'marketplace'} onContact={openContactEmail} />
       <ProfileScreen {...menuActions} onContact={openContactEmail} />
     </TabPager>
     </View>
-    {tab !== 'profile' && <View pointerEvents="none" style={styles.statusBarFade}>
+    {!detail && tab !== 'profile' && <View pointerEvents="none" style={styles.statusBarFade}>
       <View style={{ height: insets.top, backgroundColor: '#000000' }} />
       <LinearGradient colors={['#000000', '#00000000']} style={{ height: 10 }} />
     </View>}
-    {!keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
+    {!detail && !keyboardVisible && <BottomNavigation active={tab} onSelect={navigate} />}
     <NavigationSheet visible={menuOpen} active={tab} onClose={() => setMenuOpen(false)} onSelect={navigate} onContact={openContactEmail} />
-    <FixedContact onPress={openContactEmail} visible={!homeBannersVisible || tab !== 'home'} />
+    <FixedContact onPress={openContactEmail} visible={!detail&&(!homeBannersVisible || tab !== 'home')} />
+    {detail&&<FindingDetailScreen finding={detail} onBack={()=>setDetail(null)}/>}
   </KeyboardAvoidingView>;
 }
 
