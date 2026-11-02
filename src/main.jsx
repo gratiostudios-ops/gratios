@@ -12,7 +12,7 @@ const apkUrl = '';
 function App() {
   return <main className="mx-auto min-h-screen w-full max-w-6xl px-5 sm:px-8">
     <section className="flex flex-col items-center pb-14 pt-16 text-center sm:pb-20 sm:pt-24">
-      <img className="gratios-wordmark mb-3 h-auto w-32 sm:mb-4 sm:w-40" src="/gratios-logo-white.png" alt="Gratios" />
+      <img className="gratios-wordmark mb-3 h-auto w-[9.6rem] sm:mb-4 sm:w-48" src="/gratios-logo-white.png" alt="Gratios" />
       <p className="mb-2 text-xs font-medium tracking-[.14em] text-neutral-400">YOUR PERSONAL AGENT</p>
       <p className="mt-1 max-w-xl text-lg font-normal leading-relaxed text-neutral-300 sm:text-xl">Your personal agent, powered by agents from everywhere</p>
       <a className="download mt-7 inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-blue-600 px-6 text-base font-semibold text-white transition active:scale-95" href={apkUrl || '#download'} onClick={apkUrl ? undefined : e => { e.preventDefault(); alert('The Android APK will be available here soon.'); }}>Download for Android <span aria-hidden="true">↓</span></a>
@@ -29,7 +29,7 @@ function App() {
       </div>
     </section>
 
-    <footer className="border-t border-white/10 py-6 text-center text-sm text-neutral-400"><a className="transition hover:text-white" href="mailto:gratiostudios-ops@gmail.com">Contact us · gratiostudios-ops@gmail.com</a></footer>
+    <footer className="border-t border-white/10 py-6 text-center text-sm text-neutral-400"><a className="transition hover:text-white" href="mailto:gratiostudios@gmail.com">Contact us · gratiostudios@gmail.com</a></footer>
   </main>;
 }
 
