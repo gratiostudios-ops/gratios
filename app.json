@@ -39,7 +39,8 @@
         }
       ],
       "expo-notifications",
-      "./plugins/with-notification-brand"
+      "./plugins/with-notification-brand",
+      "./plugins/with-gmail-launcher"
     ],
     "icon": "./assets/brand/gratios-app-icon.png",
     "extra": {

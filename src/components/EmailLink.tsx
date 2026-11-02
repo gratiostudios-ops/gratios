@@ -1,6 +1,6 @@
 import {openEmailWithFallback} from '../data/email-opening';
 import React,{useRef,useState} from 'react';
-import { Alert, Linking, Platform, StyleSheet } from 'react-native';
+import { Alert, Linking, NativeModules, Platform, StyleSheet } from 'react-native';
 import { AppText } from './UI';
 import { isGmailMessageUrl } from '../../../backend/shared/response';
 import { fonts } from '../theme';
@@ -15,8 +15,9 @@ export function EmailLink({block}:{block:{url?:string;label?:string}}){
       if(Platform.OS==='web'){await Linking.openURL(url);return;}
       await openEmailWithFallback(url,async()=>{
         if(Platform.OS!=='android')throw new Error('Native Gmail route unavailable');
-        const {startActivityAsync}=await import('expo-intent-launcher');
-        await startActivityAsync('android.intent.action.VIEW',{data:url,packageName:'com.google.android.gm'});
+        const launcher=NativeModules.GmailLauncher;
+        if(!launcher?.open)throw new Error('Install the updated app to open Gmail');
+        await launcher.open(url);
       },()=>new Promise<boolean>(resolve=>Alert.alert('Open email in browser?','Gmail could not open this email in the app.',[
         {text:'Cancel',style:'cancel',onPress:()=>resolve(false)},
         {text:'Open in browser',onPress:()=>resolve(true)},
