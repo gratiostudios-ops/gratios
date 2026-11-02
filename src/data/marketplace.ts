@@ -57,6 +57,7 @@ export function createMarketplaceClient(transport: MarketTransport) {
       return mutate<{ draft: MarketVersion }>('/' + segment(id) + '/draft', 'PATCH', { ...changes, artwork: changes.artwork.mediaId ? { mediaId: changes.artwork.mediaId } : changes.artwork, ...(changes.cover === undefined ? {} : { cover: changes.cover ? { mediaId: changes.cover.mediaId } : null }) });
     },
     publish: (id: string, versionId: string) => mutate('/' + segment(id) + '/publish', 'POST', { versionId }),
+    deleteListing: (id: string) => mutate('/' + segment(id), 'DELETE'),
     unpublish: (id: string) => mutate('/' + segment(id) + '/unpublish', 'POST', {}),
     install: (id: string, acceptedTools: string[], preferences: string) => mutate<InstallResult>('/' + segment(id) + '/install', 'POST', { acceptedTools, preferences }),
     enable: (id: string, enabled: boolean) => mutate<SetupResult>('/installations/' + segment(id), 'PATCH', { enabled }),

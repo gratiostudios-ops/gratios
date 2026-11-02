@@ -112,3 +112,11 @@ test('every bundled publishing icon has a source asset', async () => {
   const source = await readFile(new URL('../src/agent-icons.ts', import.meta.url), 'utf8');
   for (const key of agentIconKeys) assert.ok(source.includes("'" + key + "':"));
 });
+
+
+test('public listing deletion uses the owned listing DELETE endpoint',async()=>{
+  const {client,calls}=fixture();await client.deleteListing('listing');
+  assert.equal(calls[0].path,'/gateway/marketplace/listing');
+  assert.equal(calls[0].init?.method,'DELETE');
+  assert.equal(calls[0].init?.body,undefined);
+});
