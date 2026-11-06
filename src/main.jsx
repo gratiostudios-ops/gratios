@@ -8,7 +8,7 @@ const screens = [
   ['demo-market3.jpg', 'Marketplace'],
   ['WhatsApp Image 2026-10-31 at 2.11.50 PM.jpeg', 'Profile'],
 ];
-const apkUrl = 'https://github.com/gratiostudios-ops/gratios/releases/download/v1/app-release.apk';
+const apkUrl = 'https://github.com/gratiostudios-ops/gratios/releases/download/v2/app-release.apk';
 function App() {
   return <main className="mx-auto min-h-screen w-full max-w-6xl px-5 sm:px-8">
     <section className="flex flex-col items-center pb-14 pt-16 text-center sm:pb-20 sm:pt-24">
